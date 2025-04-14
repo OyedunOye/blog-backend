@@ -3,16 +3,17 @@ const mongoose = require ('mongoose');
 
 
 const { Schema, model } = mongoose;
-const readerSchema = Schema({
+const userSchema = Schema({
     firstName: {type: String, required: true},
     lastName: {type: String, required: true},
     email: {type: String, required: true, unique: true},
     passwordHash: {type: String, required: true},
+    blogs: [{type:Schema.Types.ObjectId, ref: "Blog"}]
     // profilePic: {type: String, required: false, get: v=> `${root}${v}`}
 },
 {timestamps: true}
 )
 
-const Reader = model("Reader", readerSchema)
+const User = model("User", userSchema)
 
-module.exports = Reader
+module.exports = User

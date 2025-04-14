@@ -1,17 +1,17 @@
-const readerRouter = require("express").Router();
+const userRouter = require("express").Router();
 const bcrypt = require('bcrypt')
-const Reader = require("../models/reader")
+const User = require("../models/user")
 
-readerRouter.get("/", async (req, res) => {
-    const allReaders = await Reader.find({})
-    res.json(allReaders)
+userRouter.get("/", async (req, res) => {
+    const allUsers = await User.find({})
+    res.json(allUsers)
 })
 
-readerRouter.post("/", async (req, res) => {
+userRouter.post("/", async (req, res) => {
 
     try {
         const { firstName, lastName, email, password } = req.body
-        const existingEmail  = await Reader.find({email: email}).exec()
+        const existingEmail  = await User.find({email: email}).exec()
         console.log(existingEmail)
 
         if (existingEmail.length >= 1) {
@@ -24,43 +24,43 @@ readerRouter.post("/", async (req, res) => {
 
         const salt = 10
         const passwordHash = await bcrypt.hashSync(password, salt)
-        const newReader = new Reader({firstName, lastName, email, passwordHash})
-        const savedReader = await newReader.save()
-        res.status(201).json({reader: savedReader, message: "User created Successfully!"})
+        const newUser = new User({firstName, lastName, email, passwordHash})
+        const savedUser = await newUser.save()
+        res.status(201).json({user: savedUser, message: "User created Successfully!"})
     } catch (error) {
         console.log(error)
     }
 })
 
-readerRouter.get("/:id", async (req, res) => {
+userRouter.get("/:id", async (req, res) => {
     const id = req.params.id
-    const reader = await User.findById(id)
-    res.json(reader)
+    const user = await User.findById(id)
+    res.json(user)
 })
 
-readerRouter.delete("/:id", async (req,res) => {
+userRouter.delete("/:id", async (req,res) => {
     try {
         const id = req.params.id
-        const deletedReader = await User.findByIdAndDelete(id).exec()
-        console.log(deletedReader)
-        if (!deletedReader) {
+        const deletedUser = await User.findByIdAndDelete(id).exec()
+        console.log(deletedUser)
+        if (!deletedUser) {
             return res.status(404).json({ message: "User does not exist!" });
         }
-        res.status(200).json({message: `User ${deletedReader.firstName} has been deleted successfully.`})
+        res.status(200).json({message: `User ${deletedUser.firstName} has been deleted successfully.`})
         } catch (error) {
             res.status(500).json({ error: "An error occurred while deleting the item" });
         }
 
 })
 
-readerRouter.patch("/:id", async (req, res) => {
+userRouter.patch("/:id", async (req, res) => {
     const updates = req.body
     const id = req.params.id
 
     try {
-        const updatedReader = await User.findOneAndUpdate({_id:id}, updates, {isDeleted: true});
-        console.log(updatedReader)
-        if (!updatedReader) {
+        const updatedUser = await User.findOneAndUpdate({_id:id}, updates, {isDeleted: true});
+        console.log(updatedUser)
+        if (!updatedUser) {
             return res.status(404).json({error: `No user with id ${id} exists! Create a user instead`})
         }
         const updatedInstance = await User.find({_id:id})
@@ -71,4 +71,4 @@ readerRouter.patch("/:id", async (req, res) => {
     }
 })
 
-module.exports = readerRouter
+module.exports = userRouter
