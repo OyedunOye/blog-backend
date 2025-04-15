@@ -8,8 +8,8 @@ const userSchema = Schema({
     lastName: {type: String, required: true},
     email: {type: String, required: true, unique: true},
     passwordHash: {type: String, required: true},
-    blogs: [{type:Schema.Types.ObjectId, ref: "Blog"}]
-    // profilePic: {type: String, required: false, get: v=> `${root}${v}`}
+    blogs: [{type:Schema.Types.ObjectId, ref: "Blog"}],
+    authorImg: {type: String, required: false}
 },
 {timestamps: true}
 )

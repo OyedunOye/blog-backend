@@ -1,5 +1,8 @@
 const userRouter = require("express").Router();
 const bcrypt = require('bcrypt')
+const fs = require('fs')
+const multer = require('multer')
+const uploadMiddleware = multer({dest: "uploads/"})
 const User = require("../models/user")
 
 userRouter.get("/", async (req, res) => {
@@ -7,10 +10,17 @@ userRouter.get("/", async (req, res) => {
     res.json(allUsers)
 })
 
-userRouter.post("/", async (req, res) => {
+userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
 
     try {
+
         const { firstName, lastName, email, password } = req.body
+        const { originalname, path } = req.file
+
+        if (!firstName || !lastName || !email || !password) {
+            return res.status(400).json({error: "All the 4 fields are required, please provide all to create an account."})
+        }
+
         const existingEmail  = await User.find({email: email}).exec()
         console.log(existingEmail)
 
@@ -18,13 +28,13 @@ userRouter.post("/", async (req, res) => {
             return res.status(409).json({user: null, message: "User already exists, please login."})
         }
 
-        if (!firstName || !lastName || !email || !password) {
-            return res.status(400).json({error: "All the 4 fields are required, please provide all to create an account."})
-        }
-
         const salt = 10
         const passwordHash = await bcrypt.hashSync(password, salt)
-        const newUser = new User({firstName, lastName, email, passwordHash})
+        const fileNameSplit = originalname.split('.')
+        const ext = fileNameSplit[fileNameSplit.length - 1]
+        const filePath = (path + '.' + ext)
+        fs.renameSync(path, filePath)
+        const newUser = new User({firstName, lastName, email, passwordHash, authorImg: filePath})
         const savedUser = await newUser.save()
         res.status(201).json({user: savedUser, message: "User created Successfully!"})
     } catch (error) {
