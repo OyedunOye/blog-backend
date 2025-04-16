@@ -6,7 +6,7 @@ blogRouter.get("/", userExtractor, async (req, res) => {
     const author = req.user
     console.log(author)
     try{
-        const authorBlogs = await Blog.find({author}).populate('user', {firstName: 1, lastName: 1, email: 1});
+        const authorBlogs = await Blog.find({author}).populate('author', {firstName: 1, lastName: 1, email: 1});
         console.log(authorBlogs)
         if (!authorBlogs.length) {
             return res.status(404).json({ message: "No blogs are found for this user" });
@@ -22,7 +22,7 @@ blogRouter.get("/:id", userExtractor, async (req, res) => {
     const author = req.user
 
     try {
-        const selectedBlog = await Blog.find({_id:id, author}).populate('user', {firstName: 1, lastName: 1, email: 1});
+        const selectedBlog = await Blog.find({_id:id, author}).populate('author', {firstName: 1, lastName: 1, email: 1});
         if (!selectedBlog.length) {
             return res.status(404).json({error: `No blog with id ${id} is found for this author!`})
         }
@@ -79,7 +79,7 @@ blogRouter.delete("/:id", userExtractor, async (req, res) => {
     const author = req.user
 
     try {
-        const deletedBlog = await Note.findOneAndDelete({author, _id:id})
+        const deletedBlog = await Blog.findOneAndDelete({author, _id:id})
         console.log(deletedBlog)
         if (!deletedBlog) {
             return res.status(404).json({message: "Blog does not exist."})
