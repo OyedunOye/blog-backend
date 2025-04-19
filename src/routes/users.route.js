@@ -12,11 +12,10 @@ userRouter.get("/", async (req, res) => {
 
 userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
 
+    const { firstName, lastName, email, password } = req.body
+    // const { originalname, path } = req.file
+
     try {
-
-        const { firstName, lastName, email, password } = req.body
-        const { originalname, path } = req.file
-
         if (!firstName || !lastName || !email || !password) {
             return res.status(400).json({error: "All the 4 fields are required, please provide all to create an account."})
         }
@@ -30,10 +29,15 @@ userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
 
         const salt = 10
         const passwordHash = await bcrypt.hashSync(password, salt)
-        const fileNameSplit = originalname.split('.')
-        const ext = fileNameSplit[fileNameSplit.length - 1]
-        const filePath = (path + '.' + ext)
-        fs.renameSync(path, filePath)
+        let filePath = ""
+
+        // if(originalname && path) {
+        //     const fileNameSplit = originalname.split('.')
+        //     const ext = fileNameSplit[fileNameSplit.length - 1]
+        //     filePath = (path + '.' + ext)
+        //     fs.renameSync(path, filePath)
+        // }
+
         const newUser = new User({firstName, lastName, email, passwordHash, authorImg: filePath})
         const savedUser = await newUser.save()
         res.status(201).json({user: savedUser, message: "User created Successfully!"})
