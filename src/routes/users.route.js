@@ -13,36 +13,45 @@ userRouter.get("/", async (req, res) => {
 userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
 
     const { firstName, lastName, email, password } = req.body
+
+    let filePath = ""
     // const { originalname, path } = req.file
 
     try {
         if (!firstName || !lastName || !email || !password) {
-            return res.status(400).json({error: "All the 4 fields are required, please provide all to create an account."})
+            return res.status(400).json({
+                error: "All the 4 fields are required, please provide all to create an account."
+            })
         }
 
         const existingEmail  = await User.find({email: email}).exec()
-        console.log(existingEmail)
 
         if (existingEmail.length >= 1) {
-            return res.status(409).json({user: null, message: "User already exists, please login."})
+            return res.status(409).json({
+                user: null,
+                message: "User already exists, please login."
+            })
+        }
+
+        // if(originalname && path) {
+            // if(typeof req.file !== "undefined") {
+        if(req.file) {
+            const { originalname, path } = req.file
+            const fileNameSplit = originalname.split('.')
+            const ext = fileNameSplit[fileNameSplit.length - 1]
+            filePath = (path + '.' + ext)
+            fs.renameSync(path, filePath)
         }
 
         const salt = 10
         const passwordHash = await bcrypt.hashSync(password, salt)
-        let filePath = ""
-
-        // if(originalname && path) {
-        //     const fileNameSplit = originalname.split('.')
-        //     const ext = fileNameSplit[fileNameSplit.length - 1]
-        //     filePath = (path + '.' + ext)
-        //     fs.renameSync(path, filePath)
-        // }
 
         const newUser = new User({firstName, lastName, email, passwordHash, authorImg: filePath})
         const savedUser = await newUser.save()
         res.status(201).json({user: savedUser, message: "User created Successfully!"})
     } catch (error) {
         console.log(error)
+        res.status(500).json({ error: "Something went wrong!" })
     }
 })
 
