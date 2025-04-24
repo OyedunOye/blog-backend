@@ -5,10 +5,10 @@ const {Schema, model} = mongoose
 const blogSchema = Schema({
     title: {type: String, required: true},
     blogContent: {type: String, required: true},
-    readTime:{type: Number, required: false, default: 0},
+    readTime:{type: Number, required: true},
     loveCount: {type: Number, required: false, default: 0},
     commentCount: {type: Number, required: false, default: 0},
-    // articleImg: {type: String, required: true},
+    articleImg: {type: String, required: true},
     author: {type:Schema.Types.ObjectId, ref: "User"}
 },
 {timestamps: true}

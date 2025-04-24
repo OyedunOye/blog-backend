@@ -1,6 +1,9 @@
 const blogRouter = require("express").Router();
 const Blog = require("../models/blogs")
 const { userExtractor } = require("../utils/middleware")
+const fs = require('fs')
+const multer = require('multer')
+const uploadMiddleware = multer({dest: "uploads/"})
 
 blogRouter.get("/", userExtractor, async (req, res) => {
     const author = req.user
@@ -33,11 +36,15 @@ blogRouter.get("/:id", userExtractor, async (req, res) => {
     }
 })
 
-blogRouter.post("/", userExtractor, async (req, res) => {
-    const { title, blogContent } = req.body
+blogRouter.post("/", userExtractor, uploadMiddleware.single('articleImg'), async (req, res) => {
+    const { title, blogContent, readTime } = req.body
     const author = req.user
-    if(!title || !blogContent ) {
-        return res.status(400).json({error:"One or both of the required fields are missing."})
+
+
+    // let filePath = ""
+
+    if(!title || !blogContent || !readTime || !req.file) {
+        return res.status(400).json({error:"Some of the required fields are missing."})
     }
     //403 error skipped when incorrect token or no token is provided for a user. Something to be corrected in userExtractor? Seem not needed as unregistered user can't login to even attempt creating a note, right?
 
@@ -45,7 +52,13 @@ blogRouter.post("/", userExtractor, async (req, res) => {
         return res.status(403).json({error: "Unauthorized request."})
     }
     try {
-        const newBlog = new Blog({ title, blogContent, author })
+        const { originalname, path } = req.file
+        const fileNameSplit = originalname.split('.')
+        const ext = fileNameSplit[fileNameSplit.length - 1]
+        const filePath = (path + '.' + ext)
+        fs.renameSync(path, filePath)
+
+        const newBlog = new Blog({ title, blogContent, readTime, articleImg: filePath })
         const savedBlog = await newBlog.save()
         author.blogs = author.blogs.concat(savedBlog._id)
         author.save()
