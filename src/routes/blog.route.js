@@ -5,27 +5,27 @@ const fs = require('fs')
 const multer = require('multer')
 const uploadMiddleware = multer({dest: "uploads/"})
 
-blogRouter.get("/", userExtractor, async (req, res) => {
-    const author = req.user
-    console.log(author)
+blogRouter.get("/", async (req, res) => {
+    // const author = req.user
+    // console.log(author)
     try{
-        const authorBlogs = await Blog.find({author}).populate('author', {firstName: 1, lastName: 1, email: 1});
-        console.log(authorBlogs)
-        if (!authorBlogs.length) {
-            return res.status(404).json({ message: "No blogs are found for this user" });
-        }
-        res.status(200).json({ blogs: authorBlogs, message: "Blogs retrieved successfully!" })
+        const allBlogs = await Blog.find({}).populate("author").sort({updatedAt: -1});;
+        // console.log(allBlogs)
+        // if (!authorBlogs.length) {
+        //     return res.status(404).json({ message: "No blogs are found for this user" });
+        // }
+        res.status(200).json({ blogs: allBlogs, message: "Blogs retrieved successfully!" })
     } catch(error) {
+        console.log(error)
         res.status(500).json({error: error, message:"Unable to connect to the server, please try again in a few minutes."})
     }
 })
 
-blogRouter.get("/:id", userExtractor, async (req, res) => {
+blogRouter.get("/:id", async (req, res) => {
     const id = req.params.id
-    const author = req.user
 
     try {
-        const selectedBlog = await Blog.find({_id:id, author}).populate('author', {firstName: 1, lastName: 1, email: 1});
+        const selectedBlog = await Blog.find({_id:id}).populate('author', {firstName: 1, lastName: 1, email: 1});
         if (!selectedBlog.length) {
             return res.status(404).json({error: `No blog with id ${id} is found for this author!`})
         }
@@ -37,7 +37,7 @@ blogRouter.get("/:id", userExtractor, async (req, res) => {
 })
 
 blogRouter.post("/", userExtractor, uploadMiddleware.single('articleImg'), async (req, res) => {
-    const { title, blogContent, readTime } = req.body
+    const { title, blogContent, readTime, category } = req.body
     const author = req.user
 
 
@@ -58,7 +58,7 @@ blogRouter.post("/", userExtractor, uploadMiddleware.single('articleImg'), async
         const filePath = (path + '.' + ext)
         fs.renameSync(path, filePath)
 
-        const newBlog = new Blog({ title, blogContent, readTime, articleImg: filePath })
+        const newBlog = new Blog({ title, blogContent, readTime, articleImg: filePath, author, category })
         const savedBlog = await newBlog.save()
         author.blogs = author.blogs.concat(savedBlog._id)
         author.save()

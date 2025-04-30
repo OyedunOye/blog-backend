@@ -9,7 +9,8 @@ const blogSchema = Schema({
     loveCount: {type: Number, required: false, default: 0},
     commentCount: {type: Number, required: false, default: 0},
     articleImg: {type: String, required: true},
-    author: {type:Schema.Types.ObjectId, ref: "User"}
+    author: {type:Schema.Types.ObjectId, ref: "User"},
+    category: {type: String, required: true}
 },
 {timestamps: true}
 )
