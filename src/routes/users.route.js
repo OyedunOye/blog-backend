@@ -10,6 +10,26 @@ userRouter.get("/", async (req, res) => {
     res.json(allUsers)
 })
 
+userRouter.get("/authors", async (req, res) => {
+    try {
+        const allUsers = await User.find({}).populate("blogs")
+        // .sort({blogs.length: -1})
+        // res.json(allUsers)
+        const authors = []
+        allUsers.map((user)=> {
+            if (user.blogs.length !==0){
+                authors.push(user)
+            }
+        })
+
+        return res.status(200).json({authors: authors, message: "All authors retrieved successfully!"})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({message: "An error occured, unable to retrieve the list of blog authors."})
+    }
+
+})
+
 userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
 
     const { firstName, lastName, email, password } = req.body

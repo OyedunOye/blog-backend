@@ -9,7 +9,7 @@ blogRouter.get("/", async (req, res) => {
     // const author = req.user
     // console.log(author)
     try{
-        const allBlogs = await Blog.find({}).populate("author").sort({updatedAt: -1});;
+        const allBlogs = await Blog.find({}).populate("author").sort({updatedAt: -1});
         // console.log(allBlogs)
         // if (!authorBlogs.length) {
         //     return res.status(404).json({ message: "No blogs are found for this user" });
@@ -21,15 +21,39 @@ blogRouter.get("/", async (req, res) => {
     }
 })
 
+blogRouter.get("/category-count", async(req, res) => {
+    try {
+        const counts = await Blog.aggregate([
+          {$group: {
+              _id: "$category",
+              count: { $sum: 1 }
+            }
+          }
+        ]);
+
+        // Convert array to an object with category names as keys
+        const countResult = counts.reduce((acc, curr) => {
+            acc[curr._id] = curr.count;
+            return acc;
+            }, {});
+
+
+        res.json(countResult);
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to count blogs by category" });
+      }
+})
+
 blogRouter.get("/:id", async (req, res) => {
     const id = req.params.id
 
     try {
-        const selectedBlog = await Blog.find({_id:id}).populate('author', {firstName: 1, lastName: 1, email: 1});
+        const selectedBlog = await Blog.find({_id:id}).populate('author');
         if (!selectedBlog.length) {
             return res.status(404).json({error: `No blog with id ${id} is found for this author!`})
         }
-        res.status(200).json({ note: selectedBlog, message: "Blog retrieved successfully!" })
+        res.status(200).json({ blog: selectedBlog, message: "Blog retrieved successfully!" })
         } catch (error) {
             console.log(error.message)
         res.status(500).json({error: "Internal server error"})
