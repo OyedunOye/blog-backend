@@ -98,12 +98,13 @@ blogRouter.patch("/:id", userExtractor, async (req, res) => {
     const author = req.user
 
     try {
-        const updatedBlog = await Blog.findOneAndUpdate({_id:id, author}, updates, {isDeleted: true});
-        // console.log(updatedBlog)
+        const updatedBlog = await Blog.findByIdAndUpdate(id, updates, {new: true});
+        console.log("updates", updates)
+        console.log(updatedBlog)
         if (!updatedBlog) {
             return res.status(404).json({error: `No blog with id ${id} is found for this author!`})
         }
-        const updatedInstance = await Blog.find({_id:id, author})
+        const updatedInstance = await updatedBlog.save()
         res.status(200).json({blog: updatedInstance, message: "Blog has been updated successfully!"})
     } catch (error) {
         console.log(error)
