@@ -4,6 +4,7 @@ const { userExtractor } = require("../utils/middleware")
 const fs = require('fs')
 const multer = require('multer')
 const uploadMiddleware = multer({dest: "uploads/"})
+const path = require("path")
 
 blogRouter.get("/", async (req, res) => {
     // const author = req.user
@@ -45,6 +46,32 @@ blogRouter.get("/category-count", async(req, res) => {
       }
 })
 
+blogRouter.post("/comment/:id", userExtractor, async(req, res)=> {
+    const {comment} = req.body
+    const commenterId = req.user._id
+    const id = req.params.id
+    try {
+        const selectedBlog = await Blog.findById(id).populate('author').populate('comments.commenter');
+        if (!selectedBlog) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+        // console.log(selectedBlog)
+        const newComment = {
+            comment: comment,
+            commenter: commenterId
+        }
+        selectedBlog.comments = selectedBlog.comments.concat(newComment)
+        selectedBlog.commentCount = selectedBlog.comments.length;
+        console.log("the comment is ",newComment)
+        console.log(selectedBlog)
+        await selectedBlog.save()
+        res.status(201).json({newComment: comment, message: "New comment added successfully!"})
+    } catch (error) {
+        console.error("Error adding comment:", error);
+        res.status(500).json({error: "Opps, there is an internal server error!"})
+    }
+})
+
 blogRouter.get("/:id", async (req, res) => {
     const id = req.params.id
 
@@ -64,6 +91,7 @@ blogRouter.post("/", userExtractor, uploadMiddleware.single('articleImg'), async
     const { title, blogContent, readTime, category } = req.body
     const author = req.user
 
+    console.log(req.body)
 
     // let filePath = ""
 
@@ -92,20 +120,53 @@ blogRouter.post("/", userExtractor, uploadMiddleware.single('articleImg'), async
     }
 })
 
-blogRouter.patch("/:id", userExtractor, async (req, res) => {
+blogRouter.patch("/:id", userExtractor, uploadMiddleware.single('articleImg'), async (req, res) => {
     const updates = req.body
     const id = req.params.id
     const author = req.user
+    let filePath = ""
+    const options = {new:true}
 
+    console.log(req.file)
+    console.log("backend updates: ", updates)
+    if(!updates && !req.file){
+        return res.status(400).json({error:"You cannot send an empty form as update. At least, one of the fields is required."})
+    }
     try {
-        const updatedBlog = await Blog.findByIdAndUpdate(id, updates, {new: true});
-        console.log("updates", updates)
-        console.log(updatedBlog)
-        if (!updatedBlog) {
-            return res.status(404).json({error: `No blog with id ${id} is found for this author!`})
+        const blogExists = await Blog.findById(id);
+        const imagePath = path.join(process.cwd(), blogExists.articleImg)
+                console.log(imagePath)
+        if (!blogExists) {
+                return res.status(404).json({error: `No blog with id ${id} is found for this author!`})
+            }
+        if (req.file) {
+            const { originalname, path } = req.file
+            const fileNameSplit = originalname.split('.')
+            const ext = fileNameSplit[fileNameSplit.length - 1]
+            filePath = (path + '.' + ext)
+            fs.renameSync(path, filePath)
+
+            if(blogExists.articleImg){
+                // uploads/d55f332ad20bd61336125f44d90b4023.png
+                // const imagePath = path.join(process.cwd(), blogExists.articleImg)
+                // console.log(imagePath)
+                // fs.unlinkSync(blogExists.articleImg)
+            }
+            const updatedBlog = await Blog.findByIdAndUpdate(id, {...updates, articleImg: filePath}, options);
+            console.log("updates", updates)
+            console.log(updatedBlog)
+
+            const updatedInstance = await updatedBlog.save()
+            console.log("Updated blog: ", updatedInstance)
+            res.status(200).json({blog: updatedInstance, message: "Blog has been updated successfully!"})
+        } else if(!req.file){
+            const updatedBlog = await Blog.findByIdAndUpdate(id, {...updates}, {new: true});
+            console.log("updates", updates)
+            console.log(updatedBlog)
+            const updatedInstance = await updatedBlog.save()
+            res.status(200).json({blog: updatedInstance, message: "Blog has been updated successfully!"})
         }
-        const updatedInstance = await updatedBlog.save()
-        res.status(200).json({blog: updatedInstance, message: "Blog has been updated successfully!"})
+
     } catch (error) {
         console.log(error)
         res.status(500).json({error: "Internal server error"})
