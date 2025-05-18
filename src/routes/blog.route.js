@@ -10,7 +10,7 @@ blogRouter.get("/", async (req, res) => {
     // const author = req.user
     // console.log(author)
     try{
-        const allBlogs = await Blog.find({}).populate("author").sort({updatedAt: -1});
+        const allBlogs = await Blog.find({}).populate("author").sort({createdAt: -1});
         // console.log(allBlogs)
         // if (!authorBlogs.length) {
         //     return res.status(404).json({ message: "No blogs are found for this user" });
@@ -51,7 +51,7 @@ blogRouter.post("/comment/:id", userExtractor, async(req, res)=> {
     const commenterId = req.user._id
     const id = req.params.id
     try {
-        const selectedBlog = await Blog.findById(id).populate('author').populate('comments.commenter');
+        const selectedBlog = await Blog.findById(id).populate('author');
         if (!selectedBlog) {
             return res.status(404).json({ error: "Blog not found" });
         }
@@ -62,10 +62,11 @@ blogRouter.post("/comment/:id", userExtractor, async(req, res)=> {
         }
         selectedBlog.comments = selectedBlog.comments.concat(newComment)
         selectedBlog.commentCount = selectedBlog.comments.length;
+        selectedBlog.populate('comments.commenter')
         console.log("the comment is ",newComment)
         console.log(selectedBlog)
-        await selectedBlog.save()
-        res.status(201).json({newComment: comment, message: "New comment added successfully!"})
+        updatedSelectedBlog = await selectedBlog.save()
+        res.status(201).json({updatedBlog: updatedSelectedBlog, message: "New comment added successfully!"})
     } catch (error) {
         console.error("Error adding comment:", error);
         res.status(500).json({error: "Opps, there is an internal server error!"})
@@ -76,7 +77,7 @@ blogRouter.get("/:id", async (req, res) => {
     const id = req.params.id
 
     try {
-        const selectedBlog = await Blog.find({_id:id}).populate('author');
+        const selectedBlog = await Blog.find({_id:id}).populate('author').populate('comments.commenter');
         if (!selectedBlog.length) {
             return res.status(404).json({error: `No blog with id ${id} is found for this author!`})
         }
