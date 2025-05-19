@@ -1,5 +1,5 @@
 const userRouter = require("express").Router();
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcryptjs')
 const fs = require('fs')
 const multer = require('multer')
 const uploadMiddleware = multer({dest: "uploads/"})
@@ -64,7 +64,7 @@ userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
         }
 
         const salt = 10
-        const passwordHash = await bcrypt.hashSync(password, salt)
+        const passwordHash = await bcrypt.hash(password, salt)
 
         const newUser = new User({firstName, lastName, email, passwordHash, authorImg: filePath})
         const savedUser = await newUser.save()
