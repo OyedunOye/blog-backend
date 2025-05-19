@@ -128,15 +128,13 @@ blogRouter.patch("/:id", userExtractor, uploadMiddleware.single('articleImg'), a
     let filePath = ""
     const options = {new:true}
 
-    console.log(req.file)
-    console.log("backend updates: ", updates)
     if(!updates && !req.file){
         return res.status(400).json({error:"You cannot send an empty form as update. At least, one of the fields is required."})
     }
     try {
         const blogExists = await Blog.findById(id);
         const imagePath = path.join(process.cwd(), blogExists.articleImg)
-                console.log(imagePath)
+
         if (!blogExists) {
                 return res.status(404).json({error: `No blog with id ${id} is found for this author!`})
             }
@@ -147,23 +145,30 @@ blogRouter.patch("/:id", userExtractor, uploadMiddleware.single('articleImg'), a
             filePath = (path + '.' + ext)
             fs.renameSync(path, filePath)
 
-            if(blogExists.articleImg){
-                // uploads/d55f332ad20bd61336125f44d90b4023.png
-                // const imagePath = path.join(process.cwd(), blogExists.articleImg)
-                // console.log(imagePath)
-                // fs.unlinkSync(blogExists.articleImg)
+            
+            const previousImagePath = blogExists.articleImg;
+            console.log(previousImagePath)
+
+            // Safely delete the old image file
+            if (previousImagePath && fs.existsSync(previousImagePath)) {
+                console.log("check image to delete")
+            fs.unlink(previousImagePath, (err) => {
+                console.log('Deleting here...')
+                if (err) console.error("Failed to delete previous image:", err);
+            });
             }
+ 
             const updatedBlog = await Blog.findByIdAndUpdate(id, {...updates, articleImg: filePath}, options);
-            console.log("updates", updates)
-            console.log(updatedBlog)
+            // console.log("updates", updates)
+            // console.log(updatedBlog)
 
             const updatedInstance = await updatedBlog.save()
-            console.log("Updated blog: ", updatedInstance)
+            // console.log("Updated blog: ", updatedInstance)
             res.status(200).json({blog: updatedInstance, message: "Blog has been updated successfully!"})
         } else if(!req.file){
             const updatedBlog = await Blog.findByIdAndUpdate(id, {...updates}, {new: true});
-            console.log("updates", updates)
-            console.log(updatedBlog)
+            // console.log("updates", updates)
+            // console.log(updatedBlog)
             const updatedInstance = await updatedBlog.save()
             res.status(200).json({blog: updatedInstance, message: "Blog has been updated successfully!"})
         }
