@@ -159,8 +159,6 @@ blogRouter.patch("/:id", userExtractor, uploadMiddleware.single('articleImg'), a
             }
  
             const updatedBlog = await Blog.findByIdAndUpdate(id, {...updates, articleImg: filePath}, options);
-            // console.log("updates", updates)
-            // console.log(updatedBlog)
 
             const updatedInstance = await updatedBlog.save()
             // console.log("Updated blog: ", updatedInstance)
