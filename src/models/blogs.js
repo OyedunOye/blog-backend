@@ -15,7 +15,14 @@ const blogSchema = Schema({
         comment: {type: String},
         commenter: {type: Schema.Types.ObjectId, ref: "User"},
         commentedAt: {type: Date, default: Date.now}
-}]
+    }],
+    // loves: [{
+    //     lover: {type: Schema.Types.ObjectId, ref: "User"},
+    //     lovedAt: {type: Date, default: Date.now}
+    // }],
+    loves: [{type:Schema.Types.ObjectId, ref: "User"}]
+    // loves: [{type:String}]
+
 },
 {timestamps: true}
 )
