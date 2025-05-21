@@ -73,6 +73,38 @@ blogRouter.post("/comment/:id", userExtractor, async(req, res)=> {
     }
 })
 
+blogRouter.patch("/love/:id", userExtractor, async(req,res) => {
+    // const lover = req.body
+    const loverId = req.user._id
+    const id = req.params.id
+
+    console.log(loverId)
+    try {
+        const selectedBlog = await Blog.findById(id).populate('author');
+        if (!selectedBlog) {
+            return res.status(404).json({ error: "Blog not found" });
+        }
+
+        // const newLove = {lover: loverId}
+        const index = selectedBlog.loves.indexOf(loverId)
+        if(index === -1) {
+            console.log("Never loved")
+            selectedBlog.loves.push(loverId)
+
+        } else {
+            console.log("already loved")
+            selectedBlog.loves = selectedBlog.loves.filter(id => id.toString() !== loverId.toString())
+        }
+
+        selectedBlog.loveCount = selectedBlog.loves.length;
+        const updatedSelectedBlog = await selectedBlog.save()
+        res.status(201).json({updatedBlog: updatedSelectedBlog, message: "Successful!"})
+    } catch (error) {
+        console.error("Error loving this blog:", error);
+        res.status(500).json({error: "Opps, there is an internal server error!"})
+    }
+})
+
 blogRouter.get("/:id", async (req, res) => {
     const id = req.params.id
 
