@@ -3,7 +3,8 @@ const bcrypt = require('bcryptjs')
 const fs = require('fs')
 const multer = require('multer')
 const uploadMiddleware = multer({dest: "uploads/"})
-const User = require("../models/user")
+const User = require("../models/user");
+const { userExtractor } = require("../utils/middleware");
 
 userRouter.get("/", async (req, res) => {
     const allUsers = await User.find({})
@@ -72,6 +73,18 @@ userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
     } catch (error) {
         console.log(error)
         res.status(500).json({ error: "Something went wrong!" })
+    }
+})
+
+userRouter.get("/profile", userExtractor, async (req, res) => {
+    const userId = req.user._id.toString()
+    console.log(userId)
+    try {
+        
+        const user = await User.findById(userId).populate('blogs')
+        res.status(200).json({user, message: "Retrieved the user successfully"})
+    } catch (error) {
+        return res.status(500).json({error: "Unable to get user's details"})
     }
 })
 
