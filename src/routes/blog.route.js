@@ -80,6 +80,9 @@ blogRouter.patch("/love/:id", userExtractor, async(req,res) => {
 
     console.log(loverId)
     try {
+        if(!req.user){
+            return res.status(401).json({ error: "Unauthorized action" });
+        }
         const selectedBlog = await Blog.findById(id).populate('author');
         if (!selectedBlog) {
             return res.status(404).json({ error: "Blog not found" });
