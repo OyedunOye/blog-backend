@@ -93,7 +93,7 @@ userRouter.get("/profile", userExtractor, async (req, res) => {
     }
 })
 
-userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('articleImg'), async (req, res) => {
+userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('authorImg'), async (req, res) => {
     const updates = req.body
     let filePath = ""
 
@@ -135,14 +135,25 @@ userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('articl
                 const updatedUserInstance = await updatedUser.save()
 
                 return res.status(200).json({user: updatedUserInstance, message: "The user profile has been updated successfully!"})
-        } else{
+        } else {
+             if(updates.authorImg==="") {
+            const previousImagePath = thisUser.authorImg
 
+                // Safely delete the old image file
+                if (previousImagePath && fs.existsSync(previousImagePath)) {
+                    console.log("check image to delete")
+                fs.unlink(previousImagePath, (err) => {
+                    console.log('Deleting here...')
+                    if (err) console.error("Failed to delete previous image:", err);
+                });
+                }
+            }
 
-        const updatedUser = await User.findByIdAndUpdate(userId, {...updates}, {new: true});
+            const updatedUser = await User.findByIdAndUpdate(userId, {...updates}, {new: true});
 
-        const updatedUserInstance = await updatedUser.save()
-        return res.status(200).json({user: updatedUserInstance, message: "The user profile has been updated successfully!"})
-         }
+            const updatedUserInstance = await updatedUser.save()
+            return res.status(200).json({user: updatedUserInstance, message: "The user profile has been updated successfully!"})
+        }
     } catch (error) {
         console.log(error)
         return res.status(500).json({error: "Internal server error"})
