@@ -54,8 +54,6 @@ userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
             })
         }
 
-        // if(originalname && path) {
-            // if(typeof req.file !== "undefined") {
         if(req.file) {
             const { originalname, path } = req.file
             const fileNameSplit = originalname.split('.')
@@ -78,7 +76,6 @@ userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
 
 userRouter.get("/profile", userExtractor, async (req, res) => {
     const userId = req.user._id.toString()
-    console.log(userId)
     if (!userId){
             return res.status(401).json({error: "Unauthorized request, please log in first."})
         }
@@ -124,9 +121,9 @@ userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('author
 
                 // Safely delete the old image file
                 if (previousImagePath && fs.existsSync(previousImagePath)) {
-                    console.log("check image to delete")
+                    // console.log("check image to delete")
                 fs.unlink(previousImagePath, (err) => {
-                    console.log('Deleting here...')
+                    // console.log('Deleting here...')
                     if (err) console.error("Failed to delete previous image:", err);
                 });
                 }
@@ -141,9 +138,9 @@ userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('author
 
                 // Safely delete the old image file
                 if (previousImagePath && fs.existsSync(previousImagePath)) {
-                    console.log("check image to delete")
+                    // console.log("check image to delete")
                 fs.unlink(previousImagePath, (err) => {
-                    console.log('Deleting here...')
+                    // console.log('Deleting here...')
                     if (err) console.error("Failed to delete previous image:", err);
                 });
                 }
@@ -199,7 +196,7 @@ userRouter.delete("/delete-profile", userExtractor, async (req,res) => {
     }
     try {
         const deletedUser = await User.findByIdAndDelete(userId).exec()
-        console.log(deletedUser)
+        // console.log(deletedUser)
         if (!deletedUser) {
             return res.status(404).json({ message: "User does not exist!" });
         }

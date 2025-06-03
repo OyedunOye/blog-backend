@@ -7,14 +7,9 @@ const uploadMiddleware = multer({dest: "uploads/"})
 const path = require("path")
 
 blogRouter.get("/", async (req, res) => {
-    // const author = req.user
-    // console.log(author)
     try{
         const allBlogs = await Blog.find({}).populate("author").sort({createdAt: -1});
-        // console.log(allBlogs)
-        // if (!authorBlogs.length) {
-        //     return res.status(404).json({ message: "No blogs are found for this user" });
-        // }
+
         res.status(200).json({ blogs: allBlogs, message: "Blogs retrieved successfully!" })
     } catch(error) {
         console.log(error)
@@ -55,7 +50,6 @@ blogRouter.post("/comment/:id", userExtractor, async(req, res)=> {
         if (!selectedBlog) {
             return res.status(404).json({ error: "Blog not found" });
         }
-        // console.log(selectedBlog)
         const newComment = {
             comment: comment,
             commenter: commenterId
@@ -63,8 +57,6 @@ blogRouter.post("/comment/:id", userExtractor, async(req, res)=> {
         selectedBlog.comments = selectedBlog.comments.concat(newComment)
         selectedBlog.commentCount = selectedBlog.comments.length;
         selectedBlog.populate('comments.commenter')
-        console.log("the comment is ",newComment)
-        console.log(selectedBlog)
         updatedSelectedBlog = await selectedBlog.save()
         res.status(201).json({updatedBlog: updatedSelectedBlog, message: "New comment added successfully!"})
     } catch (error) {
@@ -74,11 +66,9 @@ blogRouter.post("/comment/:id", userExtractor, async(req, res)=> {
 })
 
 blogRouter.patch("/love/:id", userExtractor, async(req,res) => {
-    // const lover = req.body
     const loverId = req.user._id
     const id = req.params.id
 
-    console.log(loverId)
     try {
         if(!req.user){
             return res.status(401).json({ error: "Unauthorized action" });
@@ -95,7 +85,7 @@ blogRouter.patch("/love/:id", userExtractor, async(req,res) => {
             selectedBlog.loves.push(loverId)
 
         } else {
-            console.log("already loved")
+            // console.log("already loved")
             selectedBlog.loves = selectedBlog.loves.filter(id => id.toString() !== loverId.toString())
         }
 
@@ -127,18 +117,15 @@ blogRouter.post("/", userExtractor, uploadMiddleware.single('articleImg'), async
     const { title, blogContent, readTime, category } = req.body
     const author = req.user
 
-    console.log(req.body)
+    if(!author) {
+        return res.status(403).json({error: "Unauthorized request."})
+    }
 
-    // let filePath = ""
-
-    if(!title || !blogContent || !readTime || !req.file) {
+    if(!title || !blogContent || !readTime || !category || !req.file) {
         return res.status(400).json({error:"Some of the required fields are missing."})
     }
     //403 error skipped when incorrect token or no token is provided for a user. Something to be corrected in userExtractor? Seem not needed as unregistered user can't login to even attempt creating a note, right?
 
-    if(!author) {
-        return res.status(403).json({error: "Unauthorized request."})
-    }
     try {
         const { originalname, path } = req.file
         const fileNameSplit = originalname.split('.')
@@ -180,15 +167,13 @@ blogRouter.patch("/:id", userExtractor, uploadMiddleware.single('articleImg'), a
             filePath = (path + '.' + ext)
             fs.renameSync(path, filePath)
 
-            
             const previousImagePath = blogExists.articleImg;
-            console.log(previousImagePath)
 
             // Safely delete the old image file
             if (previousImagePath && fs.existsSync(previousImagePath)) {
-                console.log("check image to delete")
+                // console.log("check image to delete")
             fs.unlink(previousImagePath, (err) => {
-                console.log('Deleting here...')
+                // console.log('Deleting here...')
                 if (err) console.error("Failed to delete previous image:", err);
             });
             }
@@ -196,12 +181,9 @@ blogRouter.patch("/:id", userExtractor, uploadMiddleware.single('articleImg'), a
             const updatedBlog = await Blog.findByIdAndUpdate(id, {...updates, articleImg: filePath}, options);
 
             const updatedInstance = await updatedBlog.save()
-            // console.log("Updated blog: ", updatedInstance)
             res.status(200).json({blog: updatedInstance, message: "Blog has been updated successfully!"})
         } else if(!req.file){
             const updatedBlog = await Blog.findByIdAndUpdate(id, {...updates}, {new: true});
-            // console.log("updates", updates)
-            // console.log(updatedBlog)
             const updatedInstance = await updatedBlog.save()
             res.status(200).json({blog: updatedInstance, message: "Blog has been updated successfully!"})
         }
@@ -218,7 +200,7 @@ blogRouter.delete("/:id", userExtractor, async (req, res) => {
 
     try {
         const deletedBlog = await Blog.findOneAndDelete({author, _id:id})
-        console.log(deletedBlog)
+        // console.log(deletedBlog)
         if (!deletedBlog) {
             return res.status(404).json({message: "Blog does not exist."})
         }
