@@ -2,9 +2,26 @@ const blogRouter = require("express").Router();
 const Blog = require("../models/blogs")
 const { userExtractor } = require("../utils/middleware")
 const fs = require('fs')
+// const cloudinary = require('cloudinary').v2;
 const multer = require('multer')
-const uploadMiddleware = multer({dest: "uploads/"})
+const { storage, cloudinary } = require('../utils/cloudinary/cloudinary')
+// const uploadMiddleware = multer({dest: "uploads/"})
+const uploadMiddleware = multer({storage})
+
 const path = require("path")
+
+cloudinary.config({
+  secure: true
+});
+
+const options = {
+      use_filename: true,
+      unique_filename: false,
+      overwrite: true,
+    };
+
+// Log the configuration
+console.log(cloudinary.config());
 
 blogRouter.get("/", async (req, res) => {
     try{
@@ -113,9 +130,13 @@ blogRouter.get("/:id", async (req, res) => {
     }
 })
 
-blogRouter.post("/", userExtractor, uploadMiddleware.single('articleImg'), async (req, res) => {
+blogRouter.post("/", userExtractor,  async (req, res) => {
+    console.log(req)
+    // console.log(req.body)
+    // console.log(req.file)
     const { title, blogContent, readTime, category } = req.body
     const author = req.user
+
 
     if(!author) {
         return res.status(403).json({error: "Unauthorized request."})
@@ -127,13 +148,20 @@ blogRouter.post("/", userExtractor, uploadMiddleware.single('articleImg'), async
     //403 error skipped when incorrect token or no token is provided for a user. Something to be corrected in userExtractor? Seem not needed as unregistered user can't login to even attempt creating a note, right?
 
     try {
-        const { originalname, path } = req.file
-        const fileNameSplit = originalname.split('.')
-        const ext = fileNameSplit[fileNameSplit.length - 1]
-        const filePath = (path + '.' + ext)
-        fs.renameSync(path, filePath)
+        // const { originalname, path } = req.file
+        // const { filename, path } = req.file
+        // const fileNameSplit = originalname.split('.')
+        // const ext = fileNameSplit[fileNameSplit.length - 1]
+        // const filePath = (path + '.' + ext)
+        // fs.renameSync(path, filePath)
+        // const imageUrl = await cloudinary.uploader.upload(fileNameSplit, options)
+        // console.log(imageUrl)
 
-        const newBlog = new Blog({ title, blogContent, readTime, articleImg: filePath, author, category })
+    //     const result = await cloudinary.uploader.upload(req.file, options);
+    //   console.log(result);
+    //   return result.public_id;
+
+        const newBlog = new Blog({ title, blogContent, readTime, articleImg: req.file.path, author, category })
         const savedBlog = await newBlog.save()
         author.blogs = author.blogs.concat(savedBlog._id)
         author.save()
