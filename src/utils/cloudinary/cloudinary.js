@@ -1,18 +1,20 @@
 // Require the cloudinary library
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require("cloudinary").v2;
 
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 // Return "https" URLs by setting secure: true
 cloudinary.config({
-  secure: true
+  secure: true,
 });
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'Shade_Blog_Images', // optional: organize uploads
-    allowed_formats: ['*'],
+  params: async (req, file) => {
+    return {
+      folder: "Shade_Blog_Images",
+      allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+    };
   },
 });
 
@@ -26,7 +28,7 @@ module.exports = {
 /////////////////////////
 // const uploadImage = async (imagePath) => {
 
-//     // Use the uploaded file's name as the asset's public ID and 
+//     // Use the uploaded file's name as the asset's public ID and
 //     // allow overwriting the asset with new versions
 //     const options = {
 //       use_filename: true,
