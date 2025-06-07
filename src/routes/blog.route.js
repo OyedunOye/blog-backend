@@ -1,25 +1,18 @@
 const blogRouter = require("express").Router();
 const Blog = require("../models/blogs");
 const { userExtractor } = require("../utils/middleware");
-const fs = require("fs");
 const multer = require("multer");
 const { storage, cloudinary } = require("../utils/cloudinary/cloudinary");
 const uploadMiddleware = multer({ storage });
 
-const path = require("path");
-
-cloudinary.config({
-  secure: true,
-});
-
-const options = {
-  use_filename: true,
-  unique_filename: false,
-  overwrite: true,
-};
+// const options = {
+//   use_filename: true,
+//   unique_filename: false,
+//   overwrite: true,
+// };
 
 // Log the configuration
-console.log(cloudinary.config());
+// console.log(cloudinary.config());
 
 blogRouter.get("/", async (req, res) => {
   try {
@@ -156,9 +149,9 @@ blogRouter.post(
     const { title, blogContent, readTime, category } = req.body;
     const author = req.user;
 
-    console.log("REQ.BODY:", req.body);
-    console.log("REQ.FILE:", req.file);
-    console.log("REQ.HEADERS:", req.headers["content-type"]);
+    // console.log("REQ.BODY:", req.body);
+    // console.log("REQ.FILE:", req.file);
+    // console.log("REQ.HEADERS:", req.headers["content-type"]);
 
     if (!author) {
       return res.status(403).json({ error: "Unauthorized request." });
@@ -201,8 +194,6 @@ blogRouter.patch(
   async (req, res) => {
     const updates = req.body;
     const id = req.params.id;
-    const author = req.user;
-    let filePath = "";
     const options = { new: true };
 
     if (!updates && !req.file) {
@@ -213,7 +204,6 @@ blogRouter.patch(
     }
     try {
       const blogExists = await Blog.findById(id);
-      const imagePath = path.join(process.cwd(), blogExists.articleImg);
 
       if (!blogExists) {
         return res
@@ -221,26 +211,27 @@ blogRouter.patch(
           .json({ error: `No blog with id ${id} is found for this author!` });
       }
       if (req.file) {
-        const { originalname, path } = req.file;
-        const fileNameSplit = originalname.split(".");
-        const ext = fileNameSplit[fileNameSplit.length - 1];
-        filePath = path + "." + ext;
-        fs.renameSync(path, filePath);
-
         const previousImagePath = blogExists.articleImg;
 
-        // Safely delete the old image file
-        if (previousImagePath && fs.existsSync(previousImagePath)) {
-          // console.log("check image to delete")
-          fs.unlink(previousImagePath, (err) => {
-            // console.log('Deleting here...')
-            if (err) console.error("Failed to delete previous image:", err);
-          });
+        // Delete the old image file
+        if (previousImagePath) {
+        try {
+          // split the saved image url to obtain cloudinary's publicId which can be used to delete or do other operations on a cloudinary asset
+          const firstSplit = previousImagePath.split("/")
+          const fileWithExt = firstSplit[firstSplit.length-2] + "/" + firstSplit[firstSplit.length-1]
+          const secondSplit = fileWithExt.split(".")
+          const pubId = secondSplit[0]
+          // console.log(pubId)
+          console.log('Deleting here...')
+          await cloudinary.uploader.destroy(pubId)
+        } catch (error) {
+          console.error("Failed to delete previous image:", error)
+        }
         }
 
         const updatedBlog = await Blog.findByIdAndUpdate(
           id,
-          { ...updates, articleImg: filePath },
+          { ...updates, articleImg: req.file.path },
           options
         );
 
@@ -274,6 +265,23 @@ blogRouter.delete("/:id", userExtractor, async (req, res) => {
 
   try {
     const deletedBlog = await Blog.findOneAndDelete({ author, _id: id });
+
+    const previousImagePath = deletedBlog.articleImg;
+    // Delete the old image file
+
+    try {
+      // split the saved image url to obtain cloudinary's publicId which can be used to delete or do other operations on a cloudinary asset
+      const firstSplit = previousImagePath.split("/")
+      const fileWithExt = firstSplit[firstSplit.length-2] + "/" + firstSplit[firstSplit.length-1]
+      const secondSplit = fileWithExt.split(".")
+      const pubId = secondSplit[0]
+      // console.log(pubId)
+      console.log('Deleting here...')
+      await cloudinary.uploader.destroy(pubId)
+    } catch (error) {
+      console.error("Failed to delete previous image:", error)
+    }
+
     // console.log(deletedBlog)
     if (!deletedBlog) {
       return res.status(404).json({ message: "Blog does not exist." });
