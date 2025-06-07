@@ -1,10 +1,11 @@
 const userRouter = require("express").Router();
-const bcrypt = require('bcryptjs')
-const fs = require('fs')
-const multer = require('multer')
-const uploadMiddleware = multer({dest: "uploads/"})
 const User = require("../models/user");
+const bcrypt = require('bcryptjs')
 const { userExtractor } = require("../utils/middleware");
+const multer = require("multer")
+const { storage, cloudinary } = require("../utils/cloudinary/cloudinary");
+const uploadMiddleware = multer({ storage})
+
 
 userRouter.get("/", async (req, res) => {
     const allUsers = await User.find({})
@@ -31,19 +32,23 @@ userRouter.get("/authors", async (req, res) => {
 
 })
 
-userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
+userRouter.post("/", uploadMiddleware.single("authorImg"), async (req, res) => {
+    console.log("REQ.BODY:", req.body);
+    console.log("REQ.FILE:", req.file);
+    console.log("REQ.HEADERS:", req.headers["content-type"]);
 
     const { firstName, lastName, email, password } = req.body
+    // console.log(firstName, lastName, email, password)
+    // console.log(req.file)
+    
+    if (!firstName || !lastName || !email || !password) {
+        return res.status(400).json({
+            error: "All the 4 fields are required, please provide all to create an account."
+        })
+    }
 
     let filePath = ""
-    // const { originalname, path } = req.file
-
     try {
-        if (!firstName || !lastName || !email || !password) {
-            return res.status(400).json({
-                error: "All the 4 fields are required, please provide all to create an account."
-            })
-        }
 
         const existingEmail  = await User.find({email: email}).exec()
 
@@ -54,20 +59,16 @@ userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
             })
         }
 
-        // if(originalname && path) {
-            // if(typeof req.file !== "undefined") {
         if(req.file) {
-            const { originalname, path } = req.file
-            const fileNameSplit = originalname.split('.')
-            const ext = fileNameSplit[fileNameSplit.length - 1]
-            filePath = (path + '.' + ext)
-            fs.renameSync(path, filePath)
+            filePath=req.file.path
         }
+
+        // console.log(filePath)
 
         const salt = 10
         const passwordHash = await bcrypt.hash(password, salt)
 
-        const newUser = new User({firstName, lastName, email, passwordHash, authorImg: filePath})
+        const newUser = await new User({firstName, lastName, email, passwordHash, authorImg: filePath})
         const savedUser = await newUser.save()
         return res.status(201).json({user: savedUser, message: "User created Successfully!"})
     } catch (error) {
@@ -78,7 +79,6 @@ userRouter.post("/", uploadMiddleware.single('authorImg'), async (req, res) => {
 
 userRouter.get("/profile", userExtractor, async (req, res) => {
     const userId = req.user._id.toString()
-    console.log(userId)
     if (!userId){
             return res.status(401).json({error: "Unauthorized request, please log in first."})
         }
@@ -93,8 +93,10 @@ userRouter.get("/profile", userExtractor, async (req, res) => {
     }
 })
 
-userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('articleImg'), async (req, res) => {
+userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('authorImg'), async (req, res) => {
     const updates = req.body
+    // console.log(req.body)
+    // console.log(req.file)
     let filePath = ""
 
     const userId = req.user._id.toString()
@@ -114,35 +116,55 @@ userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('articl
         }
 
         if(req.file){
-            const { originalname, path } = req.file
-                const fileNameSplit = originalname.split('.')
-                const ext = fileNameSplit[fileNameSplit.length - 1]
-                filePath = (path + '.' + ext)
-                fs.renameSync(path, filePath)
-
-                const previousImagePath = thisUser.authorImg
+            filePath = req.file.path
+            const previousImagePath = thisUser.authorImg
 
                 // Safely delete the old image file
-                if (previousImagePath && fs.existsSync(previousImagePath)) {
-                    console.log("check image to delete")
-                fs.unlink(previousImagePath, (err) => {
-                    console.log('Deleting here...')
-                    if (err) console.error("Failed to delete previous image:", err);
-                });
+                if (previousImagePath !=="") {
+
+                    try {
+                        const firstSplit = previousImagePath.split("/")
+                        const fileWithExt = firstSplit[firstSplit.length-2] + "/" + firstSplit[firstSplit.length-1]
+                        const secondSplit = fileWithExt.split(".")
+                        const pubId = secondSplit[0]
+                        // console.log(pubId)
+                        
+                        await cloudinary.uploader.destroy(pubId)
+                    } catch (error) {
+                        console.error("Failed to delete previous image:", error)
+                    }
                 }
 
                 const updatedUser = await User.findByIdAndUpdate(userId, {...updates, authorImg: filePath}, {new: true})
                 const updatedUserInstance = await updatedUser.save()
 
                 return res.status(200).json({user: updatedUserInstance, message: "The user profile has been updated successfully!"})
-        } else{
+        } else {
+             if(updates.authorImg==="") {
+            const previousImagePath = thisUser.authorImg
 
+                if (previousImagePath !=="" ) {
 
-        const updatedUser = await User.findByIdAndUpdate(userId, {...updates}, {new: true});
+                    try {
+                        const firstSplit = previousImagePath.split("/")
+                        const fileWithExt = firstSplit[firstSplit.length-2] + "/"+ firstSplit[firstSplit.length-1]
+                        const secondSplit = fileWithExt.split(".")
+                        const pubId = secondSplit[0]
+                        // console.log(pubId)
 
-        const updatedUserInstance = await updatedUser.save()
-        return res.status(200).json({user: updatedUserInstance, message: "The user profile has been updated successfully!"})
-         }
+                        await cloudinary.uploader.destroy(pubId)
+
+                    } catch (error) {
+                        console.error("Failed to delete previous image:", error)
+                    }
+                }
+            }
+
+            const updatedUser = await User.findByIdAndUpdate(userId, {...updates}, {new: true});
+
+            const updatedUserInstance = await updatedUser.save()
+            return res.status(200).json({user: updatedUserInstance, message: "The user profile has been updated successfully!"})
+        }
     } catch (error) {
         console.log(error)
         return res.status(500).json({error: "Internal server error"})
@@ -188,11 +210,28 @@ userRouter.delete("/delete-profile", userExtractor, async (req,res) => {
     }
     try {
         const deletedUser = await User.findByIdAndDelete(userId).exec()
-        console.log(deletedUser)
-        if (!deletedUser) {
-            return res.status(404).json({ message: "User does not exist!" });
-        }
-        res.status(200).json({message: `User ${deletedUser.firstName} has been deleted successfully.`})
+        // console.log(deletedUser)
+        const previousImagePath = deletedUser.authorImg
+
+            if (previousImagePath !=="" ) {
+
+                try {
+                    const firstSplit = previousImagePath.split("/")
+                    const fileWithExt = firstSplit[firstSplit.length-2] + "/"+ firstSplit[firstSplit.length-1]
+                    const secondSplit = fileWithExt.split(".")
+                    const pubId = secondSplit[0]
+                    // console.log(pubId)
+
+                    await cloudinary.uploader.destroy(pubId)
+
+                } catch (error) {
+                    console.error("Failed to delete previous image:", error)
+                }
+            }
+            res.status(200).json({message: `User ${deletedUser.firstName} has been deleted successfully.`})
+            if (!deletedUser) {
+                return res.status(404).json({ message: "User does not exist!" });
+            }
         } catch (error) {
             return res.status(500).json({ error: `An error occurred while deleting the user ${req.user.firstName}, please try again later.` });
         }
