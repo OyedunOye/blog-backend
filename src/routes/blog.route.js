@@ -282,6 +282,8 @@ blogRouter.delete("/:id", userExtractor, async (req, res) => {
       console.error("Failed to delete previous image:", error)
     }
 
+    author.blogs = author.blogs.filter(blog => blog.toString() !== id);
+    await author.save()
     // console.log(deletedBlog)
     if (!deletedBlog) {
       return res.status(404).json({ message: "Blog does not exist." });
