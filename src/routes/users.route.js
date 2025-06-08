@@ -33,9 +33,9 @@ userRouter.get("/authors", async (req, res) => {
 })
 
 userRouter.post("/", uploadMiddleware.single("authorImg"), async (req, res) => {
-    console.log("REQ.BODY:", req.body);
-    console.log("REQ.FILE:", req.file);
-    console.log("REQ.HEADERS:", req.headers["content-type"]);
+    // console.log("REQ.BODY:", req.body);
+    // console.log("REQ.FILE:", req.file);
+    // console.log("REQ.HEADERS:", req.headers["content-type"]);
 
     const { firstName, lastName, email, password } = req.body
     // console.log(firstName, lastName, email, password)
