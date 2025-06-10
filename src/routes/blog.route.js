@@ -87,6 +87,7 @@ blogRouter.post("/comment/:id", userExtractor, async (req, res) => {
 blogRouter.patch("/love/:id", userExtractor, async (req, res) => {
   const loverId = req.user._id;
   const id = req.params.id;
+  const author = req.user
 
   try {
     if (!req.user) {
@@ -102,20 +103,69 @@ blogRouter.patch("/love/:id", userExtractor, async (req, res) => {
     if (index === -1) {
       console.log("Never loved");
       selectedBlog.loves.push(loverId);
+      author.loved = author.loved.concat(selectedBlog._id)
+      await author.save()
     } else {
       // console.log("already loved")
       selectedBlog.loves = selectedBlog.loves.filter(
         (id) => id.toString() !== loverId.toString()
       );
+      author.loved = author.loved.filter((id)=> id.toString() !== selectedBlog._id.toString())
+      await author.save()
     }
 
     selectedBlog.loveCount = selectedBlog.loves.length;
     const updatedSelectedBlog = await selectedBlog.save();
+    
     res
       .status(201)
       .json({ updatedBlog: updatedSelectedBlog, message: "Successful!" });
   } catch (error) {
     console.error("Error loving this blog:", error);
+    res.status(500).json({ error: "Opps, there is an internal server error!" });
+  }
+});
+
+blogRouter.patch("/bookmark/:id", userExtractor, async (req, res) => {
+  const bookmarkerId = req.user._id;
+  const id = req.params.id;
+  const author = req.user
+
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized action" });
+    }
+    const selectedBlog = await Blog.findById(id).populate("author");
+    if (!selectedBlog) {
+      return res.status(404).json({ error: "Blog not found" });
+    }
+
+
+    const index = selectedBlog.bookmarks.indexOf(bookmarkerId);
+    if (index === -1) {
+      console.log("Not bookmarked");
+      selectedBlog.bookmarks.push(bookmarkerId);
+      author.bookmarked = author.bookmarked.concat(selectedBlog._id);
+      await author.save()
+    } else {
+      // console.log("already loved")
+      selectedBlog.bookmarks = selectedBlog.bookmarks.filter(
+        (id) => id.toString() !== bookmarkerId.toString()
+      );
+      author.bookmarked = author.bookmarked.filter((id) => id.toString() !==selectedBlog._id.toString());
+      await author.save()
+    }
+
+    selectedBlog.bookmarkCount = selectedBlog.bookmarks.length;
+    const updatedSelectedBlog = await selectedBlog.save();
+    // console.log(selectedBlog._id)
+    // author.bookmarked = author.bookmarked.concat(updatedSelectedBlog._id);
+    // updatedSelectedBlog.populate("bookmarks")
+    res
+      .status(201)
+      .json({ updatedBlog: updatedSelectedBlog, message: "Successful!" });
+  } catch (error) {
+    console.error("Error bookmarking this blog:", error);
     res.status(500).json({ error: "Opps, there is an internal server error!" });
   }
 });
