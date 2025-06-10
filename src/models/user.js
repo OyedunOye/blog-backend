@@ -9,6 +9,9 @@ const userSchema = Schema({
     email: {type: String, required: true, unique: true},
     passwordHash: {type: String, required: true},
     blogs: [{type:Schema.Types.ObjectId, ref: "Blog"}],
+    loved: [{type:Schema.Types.ObjectId, ref: "Blog"}],
+    bookmarked: [{type:Schema.Types.ObjectId, ref: "Blog"}],
+    isTwoFAuthActive: {type: Boolean, required: false, default: false},
     authorImg: {type: String, required: false}
 },
 {timestamps: true}

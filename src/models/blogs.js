@@ -7,6 +7,7 @@ const blogSchema = Schema({
     blogContent: {type: String, required: true},
     readTime:{type: Number, required: true},
     loveCount: {type: Number, required: false, default: 0},
+    bookmarkCount: {type: Number, required: false, default: 0},
     commentCount: {type: Number, required: false, default: 0},
     articleImg: {type: String, required: true},
     author: {type:Schema.Types.ObjectId, ref: "User"},
@@ -20,8 +21,9 @@ const blogSchema = Schema({
     //     lover: {type: Schema.Types.ObjectId, ref: "User"},
     //     lovedAt: {type: Date, default: Date.now}
     // }],
-    loves: [{type:Schema.Types.ObjectId, ref: "User"}]
-    // loves: [{type:String}]
+    loves: [{type:Schema.Types.ObjectId, ref: "User"}],
+    bookmarks: [{type:Schema.Types.ObjectId, ref: "User"}],
+    
 
 },
 {timestamps: true}

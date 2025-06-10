@@ -83,7 +83,7 @@ userRouter.get("/profile", userExtractor, async (req, res) => {
             return res.status(401).json({error: "Unauthorized request, please log in first."})
         }
     try {
-        const user = await User.findById(userId).populate('blogs')
+        const user = await User.findById(userId).populate('blogs').populate('bookmarked').populate('loved')
         if (!user){
             return res.status(404).json({error: "User not found"})
         }
