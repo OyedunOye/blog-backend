@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs')
 const { userExtractor } = require("../utils/middleware");
 const multer = require("multer")
 const { storage, cloudinary } = require("../utils/cloudinary/cloudinary");
+const { populate } = require("dotenv");
 const uploadMiddleware = multer({ storage})
 
 
@@ -84,6 +85,23 @@ userRouter.get("/profile", userExtractor, async (req, res) => {
         }
     try {
         const user = await User.findById(userId).populate('blogs').populate('bookmarked').populate('loved')
+        .populate([
+            {
+                path: 'bookmarked',
+                populate: {
+                    path:'author',
+                }
+            }
+        ])
+        .populate([
+            {
+                path: 'loved',
+                populate: {
+                    path:'author',
+                }
+            }
+        ])
+        // .populate('bookmarked.author').populate('bookmarked.comments.commenter')
         if (!user){
             return res.status(404).json({error: "User not found"})
         }
