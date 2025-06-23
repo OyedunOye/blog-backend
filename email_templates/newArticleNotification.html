@@ -1,0 +1,81 @@
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Your Shade's Blog Newsletter</title>
+    <style>
+      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333;
+      max-width: 600px; margin: 0 auto; padding: 20px; } .container {
+      background-color: #f9f9f9; border-radius: 5px; padding: 20px; margin-top:
+      20px; } .logo { text-align: center; margin-bottom: 20px; } .logo img {
+      max-width: 150px; } h1 { color: #33CC66; } .articleCard {min-height: 480px; width: 200px; border: 2rem; border-radius: 10%;} .articleCard img {border-top-left-radius: 10%; border-top-right-radius: 10%; height: 220px; width: 100%;} .cardDetails {display: flex; flex-direction: column; row-gap: 16px; height: fit-content; padding: 10px 20px 10px 20px; } .footer
+      { margin-top: 20px; text-align: center; font-size: 12px; color: #888; }
+    </style>
+  </head>
+  <body>
+    <div class='container'>
+      <div class='logo'>
+         <img src='https://res.cloudinary.com/dpav6x91z/image/upload/v1750709594/shade_s_blog_logo_vh6zcq.png' alt="Shade's blog Logo" />
+      </div>
+      <h1>Welcome to The Latest Edition of Shade's Blog Newsletter!</h1>
+
+      <!-- NOTE: USE DOUBLE CURLY BRACES TO WRAP THE VARIABLE. Dev.to is not letting me do so and remove this comment -->
+      <p>Hello {{username}},</p>
+      <p>Thank you for subscribing to our newsletter.</p>
+
+     <!-- NOTE: USE DOUBLE CURLY BRACES TO WRAP THE VARIABLE. Dev.to is not letting me do so  and remove this comment-->
+      <p>In the spirit of keeping you up to date on the additions to our blog site, a new blog titled {{title}} has just been added our to blog site! The details are as follows:
+      </p>
+      <div class="articleCard">
+        <a
+                    href='/blog/{{data._id}}'
+                    key={{data._id}}
+
+                  >
+                    <img
+                      src='{{data.articleImg}}'
+                      alt="Article Hero Image"
+                      width={626}
+                      height={267}
+                    />
+                    <div class="cardDetails" className="flex flex-col gap-y-4 mt-4 px-[20px] max-lg:px-[14px]">
+                      <div style="height: 64px; display: flex;">
+                        <div style="width: full; display: flex; column-gap: 12px; font-size: small; color: gray;">
+                          <img
+                            src='{{
+                              data.author.authorImg != ""
+                                ? data.author.authorImg
+                                : "/small-user-dummy.jpg"
+                            }}'
+                          />
+                          <div style="display: flex; flex-direction: column;">
+                            <p className="">
+                              {{data.author.firstName +
+                                " " +
+                                data.author.lastName}}
+                            </p>
+                            <p className="">
+                              {formatDate(data.createdAt.toString())} ·{" "}
+                              {data.readTime} min read
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <h3 style="font-weight: bold; height: 64px;">
+                        {{data.title}}
+                      </h3>
+                      
+                    </div>
+                  </a>
+      </div>
+      <p>If you have any questions or need assistance, please don't hesitate to
+        contact our <a href="mailto:oyesinaoyedun@gmail.com">support team.</a></p>
+      <p>Best regards,<br />Shade's Blog Team</p>
+    </div>
+    <div class='footer'>
+      <p>This is an automated message, please do not reply to this email.</p>
+      <p>&copy; {new Date().getFullYear()} Your App. All rights reserved.</p>
+    </div>
+  </body>
+</html>
