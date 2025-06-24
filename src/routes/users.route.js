@@ -4,8 +4,8 @@ const bcrypt = require('bcryptjs')
 const { userExtractor } = require("../utils/middleware");
 const multer = require("multer")
 const { storage, cloudinary } = require("../utils/cloudinary/cloudinary");
-const { populate } = require("dotenv");
 const uploadMiddleware = multer({ storage})
+const handleSendEmail = require('../utils/handleSendEmail');
 
 
 userRouter.get("/", async (req, res) => {
@@ -71,6 +71,12 @@ userRouter.post("/", uploadMiddleware.single("authorImg"), async (req, res) => {
 
         const newUser = await new User({firstName, lastName, email, passwordHash, authorImg: filePath})
         const savedUser = await newUser.save()
+
+        await handleSendEmail('welcome.html', email, 'Your Account Creation Is Successfull!', {
+              username: firstName,
+              year: new Date().getFullYear(),
+            });
+
         return res.status(201).json({user: savedUser, message: "User created Successfully!"})
     } catch (error) {
         console.log(error)
@@ -146,7 +152,7 @@ userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('author
                         const secondSplit = fileWithExt.split(".")
                         const pubId = secondSplit[0]
                         // console.log(pubId)
-                        
+
                         await cloudinary.uploader.destroy(pubId)
                     } catch (error) {
                         console.error("Failed to delete previous image:", error)
@@ -217,6 +223,35 @@ userRouter.patch("/change-password", userExtractor, async(req, res) => {
     } catch (error) {
         console.log(error)
         return res.status(500).json({error: "Internal server error"})
+    }
+})
+
+userRouter.patch("/toggle-two-fa", userExtractor, async(req, res)=> {
+    // console.log(req)
+    // console.log(req.user)
+    // console.log(req.body)
+    const userId = req.user._id.toString()
+    // console.log(userId)
+    const {status} = req.body
+    // console.log(status)
+
+    // if (!(req.user && status)) {
+    //   return res.status(401).json({ error: "Unauthorized action" });
+    // }
+
+    try {
+        const updatedUser = await User.findByIdAndUpdate(userId, {isTwoFAuthActive: status}, {new: true});
+        const updatedUserInstance = await updatedUser.save()
+        if (updatedUserInstance.isTwoFAuthActive === true) {
+            await handleSendEmail('twoFAActiveNotification.html', updatedUserInstance.email, 'Two factor authentication has been activated on your account', {
+              username: updatedUserInstance.firstName,
+              year: new Date().getFullYear(),
+            });
+        }
+        return res.status(200).json({user: updatedUserInstance, message: "The two factor authentication has been successfully updated!"})
+    } catch (error) {
+        console.error("Error toggling the two factor authentication button.", error);
+        return res.status(500).json({ error: "Opps, there is an internal server error!" });
     }
 })
 

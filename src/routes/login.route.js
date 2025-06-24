@@ -32,6 +32,7 @@ loginRouter.post("/", async (req, res) => {
             await handleSendEmail('otp.html', user.email, 'OTP Code for 2 Factor Authentication ✅', {
               username: user.firstName,
               otpCode: otpCode,
+              year: new Date().getFullYear(),
             });
             res.status(200).json({email: user.email, message: "OTP sent successfully!"})
         } catch (error) {
