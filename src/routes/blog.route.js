@@ -4,6 +4,8 @@ const { userExtractor } = require("../utils/middleware");
 const multer = require("multer");
 const { storage, cloudinary } = require("../utils/cloudinary/cloudinary");
 const uploadMiddleware = multer({ storage });
+const handleSendEmail = require('../utils/handleSendEmail');
+const Subscribers = require("../models/subscribers");
 
 // const options = {
 //   use_filename: true,
@@ -116,7 +118,7 @@ blogRouter.patch("/love/:id", userExtractor, async (req, res) => {
 
     selectedBlog.loveCount = selectedBlog.loves.length;
     const updatedSelectedBlog = await selectedBlog.save();
-    
+
     res
       .status(201)
       .json({ updatedBlog: updatedSelectedBlog, message: "Successful!" });
@@ -226,6 +228,21 @@ blogRouter.post(
       const savedBlog = await newBlog.save();
       author.blogs = author.blogs.concat(savedBlog._id);
       await author.save();
+
+      // save a list of all subcribers in the variable recipients below for handleSendEmail 'to' option
+      const recipients = await Subscribers.find({}, 'email').then(subscribers => {
+        const emailArray = subscribers.map(subscriber=> subscriber.email)
+        return emailArray
+      })
+      // console.log(recipients)
+      const baseUrl = "https://blog-frontend-pi-blush.vercel.app/blog/"
+      await handleSendEmail('newArticleNotification.html', recipients, "New Blog Post Alert", {
+        year: new Date().getFullYear(),
+        blogUrl: baseUrl + savedBlog._id,
+        blogId: savedBlog._id,
+        articleImg: savedBlog.articleImg,
+        title: savedBlog.title,
+      })
       res
         .status(201)
         .json({ blog: savedBlog, message: "New blog created Successfully!" });

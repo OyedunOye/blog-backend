@@ -3,7 +3,7 @@ const Subscribers = require("../models/subscribers")
 const handleSendEmail = require('../utils/handleSendEmail');
 
 subscribeRouter.post("/", async(req, res)=>{
-    console.log(req.body)
+    // console.log(req.body)
     const {email} = req.body
     if (!email) {
         return res.status(400).json({
