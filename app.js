@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const userRouter = require("./src/routes/users.route");
 const loginRouter = require("./src/routes/login.route");
 const blogRouter = require("./src/routes/blog.route");
+const subscribeRouter = require("./src/routes/subscribe.route");
 const middleware = require("./src/utils/middleware");
 
 app.use(express.json());
@@ -17,6 +18,7 @@ app.use(cors());
 app.use("/api/users", userRouter);
 app.use("/api/login", loginRouter);
 app.use("/api/blogs", blogRouter);
+app.use("/api/subscribers", subscribeRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello World! Welcome to blog's backend 🙂");
