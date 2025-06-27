@@ -7,14 +7,6 @@ const uploadMiddleware = multer({ storage });
 const handleSendEmail = require('../utils/handleSendEmail');
 const Subscribers = require("../models/subscribers");
 
-// const options = {
-//   use_filename: true,
-//   unique_filename: false,
-//   overwrite: true,
-// };
-
-// Log the configuration
-// console.log(cloudinary.config());
 
 blogRouter.get("/", async (req, res) => {
   try {
@@ -82,6 +74,102 @@ blogRouter.post("/comment/:id", userExtractor, async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding comment:", error);
+    res.status(500).json({ error: "Opps, there is an internal server error!" });
+  }
+});
+
+blogRouter.patch("/edit-comment", userExtractor, async (req, res) => {
+  const { comment, blogId, commentId } = req.body;
+  const commenterId = req.user._id;
+  try {
+    const selectedBlog = await Blog.findById(blogId).populate("author"). populate("comments")
+    .populate([
+            {
+                path: 'comments',
+                populate: {
+                    path:'author',
+                }
+            }
+        ])
+    if (!selectedBlog) {
+      return res.status(404).json({ error: "The blog with this comment is not found" });
+    }
+
+    const findComment= selectedBlog.comments.filter(
+        (comment) => comment._id.toString() === commentId
+      )
+
+      const targetComment = findComment[0]
+
+    if(!targetComment) {
+      return res.status(404).json({error: "The comment you are trying to update is not found."})
+    }
+
+    if(targetComment.commenter._id.toString() !== commenterId.toString()) {
+      return res.status(401).json({error: "Unauthorized request. You cannot edit someone else's comment."})
+    }
+
+    targetComment.comment = comment;
+    selectedBlog.commentCount = selectedBlog.comments.length
+    selectedBlog.populate("comments.commenter");
+    updatedSelectedBlog = await selectedBlog.save();
+    res.status(201).json({
+      updatedBlog: updatedSelectedBlog,
+      message: "Comment updated successfully!",
+    });
+  } catch (error) {
+    console.error("Error updating comment:", error);
+    res.status(500).json({ error: "Opps, there is an internal server error!" });
+  }
+});
+
+
+// I find it difficult to use delete method for this endpoint, unsure how to go about deleting content of nested array by id with findOneAndDelete
+// So I manually wrote logic to filter out desired comment by its ID and then save the remaining comments without the eliminated one.
+blogRouter.patch("/delete-comment", userExtractor, async (req, res) => {
+  const { blogId, commentId } = req.body;
+  const commenterId = req.user._id;
+
+  if (!commentId) {
+      return res.status(401).json({ error: "Unauthorized action" });
+    }
+
+  try {
+    const selectedBlog = await Blog.findById(blogId).populate("author"). populate("comments")
+    .populate([
+            {
+                path: 'comments',
+                populate: {
+                    path:'author',
+                }
+            }
+        ])
+    if (!selectedBlog) {
+      return res.status(404).json({ error: "The blog with this comment is not found" });
+    }
+
+    const deleteComment= selectedBlog.comments.filter(
+        (comment) => comment._id.toString() === commentId
+      )
+
+
+    if(!deleteComment[0]) {
+      return res.status(404).json({error: "The comment you are trying to delete is not found."})
+    }
+
+    if(deleteComment[0].commenter._id.toString() !== commenterId.toString()) {
+      return res.status(401).json({error: "Unauthorized request. You cannot delete someone else's comment."})
+    }
+    selectedBlog.comments = selectedBlog.comments.filter(comment=> comment._id.toString() !== commentId)
+    selectedBlog.commentCount = selectedBlog.comments.length
+    selectedBlog.populate("comments.commenter");
+    updatedSelectedBlog = await selectedBlog.save();
+    // console.log(updatedSelectedBlog)
+    res.status(201).json({updatedBlog: updatedSelectedBlog,
+      message: "The comment was deleted successfully!",
+    });
+  } catch (error) {
+    console.error("Error updating comment:", error);
     res.status(500).json({ error: "Opps, there is an internal server error!" });
   }
 });
