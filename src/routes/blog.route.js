@@ -322,15 +322,16 @@ blogRouter.post(
         const emailArray = subscribers.map(subscriber=> subscriber.email)
         return emailArray
       })
-      // console.log(recipients)
       const baseUrl = "https://blog-frontend-pi-blush.vercel.app/blog/"
-      await handleSendEmail('newArticleNotification.html', recipients, "New Blog Post Alert", {
-        year: new Date().getFullYear(),
-        blogUrl: baseUrl + savedBlog._id,
-        blogId: savedBlog._id,
-        articleImg: savedBlog.articleImg,
-        title: savedBlog.title,
-      })
+      for(let recipient in recipients){
+        await handleSendEmail('newArticleNotification.html', recipients[recipient], "New Blog Post Alert", {
+          year: new Date().getFullYear(),
+          blogUrl: baseUrl + savedBlog._id,
+          blogId: savedBlog._id,
+          articleImg: savedBlog.articleImg,
+          title: savedBlog.title,
+        })
+      }
       res
         .status(201)
         .json({ blog: savedBlog, message: "New blog created Successfully!" });
