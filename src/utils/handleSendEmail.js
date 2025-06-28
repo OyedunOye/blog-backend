@@ -40,7 +40,7 @@ const sendEmailMessage = async (recipient, subject, html)=>{
 
     // define mail options
     const mailOptions={
-        from: config.GOOGLE_SENDER_MAIL,
+        from: `"Shade's Blog App" <${config.GOOGLE_SENDER_MAIL}>`,
         to: recipient,
         subject: subject,
         html: html,
