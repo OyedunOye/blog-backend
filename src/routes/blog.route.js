@@ -322,7 +322,7 @@ blogRouter.post(
         const emailArray = subscribers.map(subscriber=> subscriber.email)
         return emailArray
       })
-      const baseUrl = "https://blog-frontend-pi-blush.vercel.app/blogs/"
+      const baseUrl = "https://blog-frontend-pi-blush.vercel.app/blog/"
       for(let recipient in recipients){
         await handleSendEmail('newArticleNotification.html', recipients[recipient], "New Blog Post Alert", {
           year: new Date().getFullYear(),
