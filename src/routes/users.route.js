@@ -6,21 +6,42 @@ const multer = require("multer")
 const { storage, cloudinary } = require("../utils/cloudinary/cloudinary");
 const uploadMiddleware = multer({ storage})
 const handleSendEmail = require('../utils/handleSendEmail');
+const Blog = require("../models/blogs");
 
-
+// Get all users, both active and inactive
 userRouter.get("/", async (req, res) => {
-    const allUsers = await User.find({})
-    res.json(allUsers)
+    try {
+        const allUsers = await User.find({})
+        return res.status(200).json({allUsers:allUsers, message:"Successfully retrieved all users"})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({message: "An error occured, unable to retrieve the list of users."})
+    }
+})
+
+// Get all users, both active and inactive
+userRouter.get("/active-users", async (req, res) => {
+    try {
+        const allUsers = await User.find({activeUser: true})
+        return res.status(200).json({allUsers:allUsers, message:"Successfully retrieved all users"})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({message: "An error occured, unable to retrieve the list of the active users."})
+    }
 })
 
 userRouter.get("/authors", async (req, res) => {
     try {
-        const allUsers = await User.find({}).populate("blogs").sort({createdAt: -1})
+        const allActiveUsers = await User.find({activeUser: true}).populate("blogs").sort({createdAt: -1})
         // .sort({blogs.length: -1})
         // res.json(allUsers)
+        // const activeUsers = []
+
+        // console.log(allActiveUsers)
+
         const authors = []
-        allUsers.map((user)=> {
-            if (user.blogs.length !==0){
+        allActiveUsers.map((user)=> {
+            if (user.blogs.length > 0){
                 authors.push(user)
             }
         })
@@ -53,7 +74,14 @@ userRouter.post("/", uploadMiddleware.single("authorImg"), async (req, res) => {
 
         const existingEmail  = await User.find({email: email}).exec()
 
-        if (existingEmail.length >= 1) {
+        if (existingEmail.length >= 1 && !existingEmail.activeUser) {
+            return res.status(409).json({
+                user: null,
+                message: "This account is deactivated, please contact support to reactivate your account."
+            })
+        }
+
+        if (existingEmail.length >= 1 ) {
             return res.status(409).json({
                 user: null,
                 message: "User already exists, please login."
@@ -108,7 +136,7 @@ userRouter.get("/profile", userExtractor, async (req, res) => {
             }
         ])
         // .populate('bookmarked.author').populate('bookmarked.comments.commenter')
-        if (!user){
+        if (!user || !user.activeUser){
             return res.status(404).json({error: "User not found"})
         }
         res.status(200).json({user, message: "Retrieved the user successfully"})
@@ -135,7 +163,7 @@ userRouter.patch("/edit-profile", userExtractor, uploadMiddleware.single('author
     try {
         const thisUser = await User.findById(userId);
 
-        if(!thisUser){
+        if(!thisUser || !thisUser.activeUser){
             return res.status(404).json({error: `The user with id ${userId} does not exist!`})
         }
 
@@ -207,6 +235,9 @@ userRouter.patch("/change-password", userExtractor, async(req, res) => {
     }
     try {
         const thisUser = await User.findById(userId)
+        if(!thisUser || !thisUser.activeUser){
+            return res.status(404).json({error: `The user with id ${userId} does not exist!`})
+        }
         const passwordCheck = thisUser === null ? false : await bcrypt.compare(oldPassword, thisUser.passwordHash)
 
         if (!passwordCheck) {
@@ -235,11 +266,15 @@ userRouter.patch("/toggle-two-fa", userExtractor, async(req, res)=> {
     const {status} = req.body
     // console.log(status)
 
-    // if (!(req.user && status)) {
-    //   return res.status(401).json({ error: "Unauthorized action" });
-    // }
+    if (!req.user || !status) {
+      return res.status(401).json({ error: "Unauthorized action" });
+    }
 
     try {
+        const concernedUser = await User.find({_id: userId})
+        if (!concernedUser.activeUser){
+            return res.status(404).json({error: `The user with id ${userId} does not exist!`})
+        }
         const updatedUser = await User.findByIdAndUpdate(userId, {isTwoFAuthActive: status}, {new: true});
         const updatedUserInstance = await updatedUser.save()
         if (updatedUserInstance.isTwoFAuthActive === true) {
@@ -255,15 +290,115 @@ userRouter.patch("/toggle-two-fa", userExtractor, async(req, res)=> {
     }
 })
 
-userRouter.delete("/delete-profile", userExtractor, async (req,res) => {
+userRouter.patch("/deactivate-profile", userExtractor, async (req,res) => {
     const userId = req.user._id.toString()
 
     if(!userId){
         return res.status(401).json({error: "Unauthorized request, please log in first."})
     }
     try {
-        const deletedUser = await User.findByIdAndDelete(userId).exec()
-        // console.log(deletedUser)
+        const userToInactivate = await User.findById(userId).populate('blogs')
+        // console.log(userToInactivate)
+        if (!userToInactivate || !userToInactivate.activeUser) {
+                return res.status(404).json({ message: "User does not exist!" });
+            }
+        userToInactivate.activeUser=false
+
+        // I updated and saved displayBlog property individually for blogs of inactive author. How could I posibly do this multiple doc update?
+        // I attempted to update bulk but couldn't save since the blogs are in an array...
+        const userBlogs = await Blog.find({author: userId})
+        console.log(userBlogs)
+        for (let blog in userBlogs){
+            const eachBlog = userBlogs[blog]
+            eachBlog.displayBlog=false
+            await eachBlog.save()
+        }
+        // userBlogs.map(([blog])=>{
+        //     blog.displayBlog=false
+        //      userBlogs.save()
+        //     // userToInactivateBlogArray.push(blog)
+        // })
+        // console.log(userToInactivateBlogArray)
+        // console.log("userblogs are:", userBlogs)
+        // await userBlogs.save()
+        await userToInactivate.save()
+        
+
+            res.status(200).json({message: `User ${userToInactivate.firstName} has been deactivated.`})
+
+        } catch (error) {
+            return res.status(500).json({ error: `An error occurred while deactivating the user ${req.user.firstName}'s account, please try again later.` });
+        }
+
+})
+
+// endpoint reactivates user on user's request provided request is within the 90 days grace period. Strictly for app support use!!
+userRouter.patch("/reactivate-profile", userExtractor, async (req,res) => {
+    const userId = req.user._id.toString()
+    const {userIdToRestore} = req.body
+    console.log(userIdToRestore)
+
+    // user oyesinaoyedun@yahoo.com, main and confirmed prod db
+    // if(!userId || userId !== "68472f79e34dc07e6bc6cab2"){
+    //     return res.status(401).json({error: "Unauthorized request, only admin can delete account."})
+    // }
+
+    // user oba@lola.com as admin, blog_app db
+    if(!userId || userId !== "68114b5bd8fb3beeef33d675"){
+        return res.status(401).json({error: "Unauthorized request, only admin can reactivate account."})
+    }
+
+    try {
+        const userToReactivate = await User.findById(userIdToRestore).populate('blogs')
+        console.log(userToReactivate)
+        if (!userToReactivate) {
+                return res.status(404).json({ message: "User does not exist!" });
+            }
+
+        if (userToReactivate.activeUser) {
+                return res.status(404).json({ message: "User is active!" });
+            }
+        userToReactivate.activeUser=true
+
+        // I updated and saved displayBlog property individually for blogs of inactive author. How could I posibly do this multiple doc update?
+        // I attempted to update bulk but couldn't save since the blogs are in an array...
+        const userBlogs = await Blog.find({author: userIdToRestore})
+        console.log(userBlogs)
+        for (let blog in userBlogs){
+            const eachBlog = userBlogs[blog]
+            eachBlog.displayBlog=true
+            await eachBlog.save()
+        }
+
+        await userToReactivate.save()
+
+
+            res.status(200).json({message: `User ${userToReactivate.firstName} has been reactivated!`})
+
+        } catch (error) {
+            return res.status(500).json({ error: `An error occurred while restoring the user ${req.user.firstName}, please try again later.` });
+        }
+
+})
+
+
+// endpoint deletes user and his blogs permanently. Strictly for app support use!!
+userRouter.patch("/delete-profile", userExtractor, async (req,res) => {
+    const userId = req.user._id.toString()
+    const {userIdToDelete} = req.body
+
+    // user oyesinaoyedun@yahoo.com, main and confirmed prod db
+    // if(!userId || userId !== "68472f79e34dc07e6bc6cab2"){
+    //     return res.status(401).json({error: "Unauthorized request, only admin can delete account."})
+    // }
+
+    // user oba@lola.com as admin, blog_app db
+    if(!userId || userId !== "68114b5bd8fb3beeef33d675"){
+        return res.status(401).json({error: "Unauthorized request, only admin can delete account."})
+    }
+    try {
+        const deletedUser = await User.findByIdAndDelete(userIdToDelete).exec()
+        console.log(deletedUser)
         const previousImagePath = deletedUser.authorImg
 
             if (previousImagePath !=="" ) {
@@ -273,7 +408,7 @@ userRouter.delete("/delete-profile", userExtractor, async (req,res) => {
                     const fileWithExt = firstSplit[firstSplit.length-2] + "/"+ firstSplit[firstSplit.length-1]
                     const secondSplit = fileWithExt.split(".")
                     const pubId = secondSplit[0]
-                    // console.log(pubId)
+                    console.log(pubId)
 
                     await cloudinary.uploader.destroy(pubId)
 
@@ -281,6 +416,30 @@ userRouter.delete("/delete-profile", userExtractor, async (req,res) => {
                     console.error("Failed to delete previous image:", error)
                 }
             }
+            const blogsToDelete = await Blog.find({author: userId})
+
+            for (let blog in blogsToDelete){
+                const eachBlog = await Blog.findByIdAndDelete(blogsToDelete[blog]._id)
+                const previousImagePath = eachBlog.articleImg;
+
+                // the article images are not deleted from cloudinary, need to check why and fix this
+                // good news is that all blogs for the user, and the user were deleted from mongoDB
+                try {
+                      // split the saved image url to obtain cloudinary's publicId which can be used to delete or do other operations on a cloudinary asset
+                      const firstSplit = previousImagePath.split("/")
+                      const fileWithExt = firstSplit[firstSplit.length-2] + "/" + firstSplit[firstSplit.length-1]
+                      const secondSplit = fileWithExt.split(".")
+                      const pubId = secondSplit[0]
+                      // console.log(pubId)
+                      console.log('Deleting here...')
+                      await cloudinary.uploader.destroy(pubId)
+                    } catch (error) {
+                      console.error("Failed to delete previous image:", error)
+                    }
+            }
+            // blogsToDelete.filter(blog => blog.author.toString() !== userIdToDelete)
+            console.log("BLOGS AND bLOG IMAGES DELETED SUCCESSFULLY")
+
             res.status(200).json({message: `User ${deletedUser.firstName} has been deleted successfully.`})
             if (!deletedUser) {
                 return res.status(404).json({ message: "User does not exist!" });

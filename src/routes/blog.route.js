@@ -7,10 +7,10 @@ const uploadMiddleware = multer({ storage });
 const handleSendEmail = require('../utils/handleSendEmail');
 const Subscribers = require("../models/subscribers");
 
-
+// updated to return an array of just blogs that could be displayed. i.e. whose author is still active
 blogRouter.get("/", async (req, res) => {
   try {
-    const allBlogs = await Blog.find({})
+    const allBlogs = await Blog.find({displayBlog: true})
       .populate("author")
       .sort({ createdAt: -1 });
 
@@ -28,14 +28,22 @@ blogRouter.get("/", async (req, res) => {
 });
 
 blogRouter.get("/category-count", async (req, res) => {
+
   try {
     const counts = await Blog.aggregate([
       {
+        $match: {
+          displayBlog: true, // Filter only diplayable blogs
+        },
+      },
+        {
         $group: {
           _id: "$category",
           count: { $sum: 1 },
         },
       },
+
+
     ]);
 
     // Convert array to an object with category names as keys
@@ -57,7 +65,7 @@ blogRouter.post("/comment/:id", userExtractor, async (req, res) => {
   const id = req.params.id;
   try {
     const selectedBlog = await Blog.findById(id).populate("author");
-    if (!selectedBlog) {
+    if (!selectedBlog ||!selectedBlog.displayBlog) {
       return res.status(404).json({ error: "Blog not found" });
     }
     const newComment = {
@@ -91,7 +99,7 @@ blogRouter.patch("/edit-comment", userExtractor, async (req, res) => {
                 }
             }
         ])
-    if (!selectedBlog) {
+    if (!selectedBlog || !selectedBlog.displayBlog) {
       return res.status(404).json({ error: "The blog with this comment is not found" });
     }
 
@@ -144,7 +152,7 @@ blogRouter.patch("/delete-comment", userExtractor, async (req, res) => {
                 }
             }
         ])
-    if (!selectedBlog) {
+    if (!selectedBlog || !selectedBlog.displayBlog) {
       return res.status(404).json({ error: "The blog with this comment is not found" });
     }
 
@@ -184,7 +192,7 @@ blogRouter.patch("/love/:id", userExtractor, async (req, res) => {
       return res.status(401).json({ error: "Unauthorized action" });
     }
     const selectedBlog = await Blog.findById(id).populate("author");
-    if (!selectedBlog) {
+    if (!selectedBlog || !selectedBlog.displayBlog) {
       return res.status(404).json({ error: "Blog not found" });
     }
 
@@ -226,7 +234,7 @@ blogRouter.patch("/bookmark/:id", userExtractor, async (req, res) => {
       return res.status(401).json({ error: "Unauthorized action" });
     }
     const selectedBlog = await Blog.findById(id).populate("author");
-    if (!selectedBlog) {
+    if (!selectedBlog || !selectedBlog) {
       return res.status(404).json({ error: "Blog not found" });
     }
 
@@ -267,7 +275,7 @@ blogRouter.get("/:id", async (req, res) => {
     const selectedBlog = await Blog.find({ _id: id })
       .populate("author")
       .populate("comments.commenter");
-    if (!selectedBlog.length) {
+    if (!selectedBlog.length || !selectedBlog[0].displayBlog) {
       return res
         .status(404)
         .json({ error: `No blog with id ${id} is found for this author!` });
@@ -361,7 +369,7 @@ blogRouter.patch(
     try {
       const blogExists = await Blog.findById(id);
 
-      if (!blogExists) {
+      if (!blogExists|| !blogExists.displayBlog) {
         return res
           .status(404)
           .json({ error: `No blog with id ${id} is found for this author!` });

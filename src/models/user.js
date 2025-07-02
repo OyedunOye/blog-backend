@@ -13,8 +13,9 @@ const userSchema = Schema({
     bookmarked: [{type:Schema.Types.ObjectId, ref: "Blog"}],
     isTwoFAuthActive: {type: Boolean, required: false, default: false},
     authorImg: {type: String, required: false},
-    otp: {type: String, required: false},
-    otpExpires: {type: Date, required: false, default: Date.now()}
+    otp: {type: String, required: false, default: ""},
+    otpExpires: {type: Date, required: false, default: Date.now()},
+    activeUser: {type: Boolean, required: false, default: true}
 },
 {timestamps: true}
 )
