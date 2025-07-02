@@ -416,14 +416,13 @@ userRouter.patch("/delete-profile", userExtractor, async (req,res) => {
                     console.error("Failed to delete previous image:", error)
                 }
             }
-            const blogsToDelete = await Blog.find({author: userId})
+            const blogsToDelete = await Blog.find({author: userIdToDelete})
 
             for (let blog in blogsToDelete){
                 const eachBlog = await Blog.findByIdAndDelete(blogsToDelete[blog]._id)
                 const previousImagePath = eachBlog.articleImg;
 
-                // the article images are not deleted from cloudinary, need to check why and fix this
-                // good news is that all blogs for the user, and the user were deleted from mongoDB
+
                 try {
                       // split the saved image url to obtain cloudinary's publicId which can be used to delete or do other operations on a cloudinary asset
                       const firstSplit = previousImagePath.split("/")
