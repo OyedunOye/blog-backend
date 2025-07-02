@@ -23,7 +23,7 @@ const blogSchema = Schema({
     // }],
     loves: [{type:Schema.Types.ObjectId, ref: "User"}],
     bookmarks: [{type:Schema.Types.ObjectId, ref: "User"}],
-    
+    displayBlog: {type: Boolean, required: false, default: true},
 
 },
 {timestamps: true}

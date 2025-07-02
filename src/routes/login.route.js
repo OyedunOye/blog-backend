@@ -13,9 +13,12 @@ const handleSendEmail = require('../utils/handleSendEmail');
 loginRouter.post("/", async (req, res) => {
     const { email, password } = req.body
     const user = await User.findOne({email})
+    if (user && !user.activeUser) {
+                return res.status(404).json({ message: "This user has been deactivated, please contact our support team to verify if account can be reactivated." });
+            }
     const passwordCheck = user === null ? false : await bcrypt.compare(password, user.passwordHash)
     if (!(user && passwordCheck)) {
-        return res.status(401).json({error: "Invalid password!"})
+        return res.status(401).json({error: "Incorrect password or email!"})
     }
     const userDetails = { email:user.email, id: user._id, firstName:user.firstName, lastName:user.lastName, authorImg:user.authorImg }
     // console.log(user.isTwoFAuthActive)
@@ -51,6 +54,10 @@ loginRouter.post("/validate-otp", async(req, res)=> {
     const user = await User.findOne({email})
     const currentTime = new Date(Date.now())
 
+    if (user && !user.activeUser) {
+                return res.status(404).json({ message: "This user has been deactivated, please contact our support team to verify if account can be reactivated." });
+            }
+
     if (!(otp)) {
         return res.status(401).json({error: "OTP is required!"})
     }
@@ -81,6 +88,10 @@ loginRouter.post("/validate-otp", async(req, res)=> {
 loginRouter.post("/resend-otp", async(req, res)=>{
     const { email } = req.body
     const user = await User.findOne({email})
+
+    if (user && !user.activeUser) {
+                return res.status(404).json({ message: "This user has been deactivated, please contact our support team to verify if account can be reactivated." });
+            }
     try {
 
         const otpCode = generateOTP()
