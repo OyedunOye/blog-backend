@@ -330,24 +330,25 @@ blogRouter.post(
         const emailArray = subscribers.map(subscriber=> subscriber.email)
         return emailArray
       })
-      console.log(recipients)
       const baseUrl = "https://blog-frontend-pi-blush.vercel.app/blog/"
-      for(let recipient in recipients){
-        console.log(recipients[recipient])
-        await handleSendEmail('newArticleNotification.html', recipients[recipient], "New Blog Post Alert", {
+
+      if(recipients.length>0){
+        for(let recipient in recipients){
+          await handleSendEmail('newArticleNotification.html', recipients[recipient], "New Blog Post Alert", {
           year: new Date().getFullYear(),
           blogUrl: baseUrl + savedBlog._id,
           blogId: savedBlog._id,
           articleImg: savedBlog.articleImg,
           title: savedBlog.title,
-          unSubLink: `https://blog-frontend-pi-blush.vercel.app/unsubscribe?email=${email}`,
+          unSubLink: `https://blog-frontend-pi-blush.vercel.app/unsubscribe?email=${recipients[recipient]}`,
         })
-        console.log("successful, email sent.")
+        }
       }
       return res
         .status(201)
-        .json({ blog: savedBlog, message: "New blog created Successfully!" });
+        .json({ blog: savedBlog, message: "The new blog is created successfully!" });
     } catch (error) {
+      console.log(error)
       return res
         .status(500)
         .json({ error: "Opps, there is an internal server error!" });

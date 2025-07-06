@@ -15,7 +15,8 @@ const userSchema = Schema({
     authorImg: {type: String, required: false},
     otp: {type: String, required: false, default: ""},
     otpExpires: {type: Date, required: false, default: Date.now()},
-    activeUser: {type: Boolean, required: false, default: true}
+    activeUser: {type: Boolean, required: false, default: true},
+    isAdmin: {type: Boolean, required: false, default: false}
 },
 {timestamps: true}
 )

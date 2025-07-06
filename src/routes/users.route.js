@@ -344,7 +344,7 @@ userRouter.patch("/reactivate-profile", userExtractor, async (req,res) => {
     // }
 
     // user oba@lola.com as admin, blog_app db
-    if(!userId || userId !== "68114b5bd8fb3beeef33d675"){
+    if(!userId || !req.user.isAdmin){
         return res.status(401).json({error: "Unauthorized request, only admin can reactivate account."})
     }
 
@@ -387,13 +387,8 @@ userRouter.patch("/delete-profile", userExtractor, async (req,res) => {
     const userId = req.user._id.toString()
     const {userIdToDelete} = req.body
 
-    // user oyesinaoyedun@yahoo.com, main and confirmed prod db
-    // if(!userId || userId !== "68472f79e34dc07e6bc6cab2"){
-    //     return res.status(401).json({error: "Unauthorized request, only admin can delete account."})
-    // }
-
-    // user oba@lola.com as admin, blog_app db
-    if(!userId || userId !== "68114b5bd8fb3beeef33d675"){
+    
+    if(!userId || !req.user.isAdmin){
         return res.status(401).json({error: "Unauthorized request, only admin can delete account."})
     }
     try {
