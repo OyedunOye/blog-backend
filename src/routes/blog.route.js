@@ -326,25 +326,30 @@ blogRouter.post(
       await author.save();
 
       // save a list of all subcribers in the variable recipients below for handleSendEmail 'to' option
-      const recipients = await Subscribers.find({}, 'email').then(subscribers => {
+      const recipients = await Subscribers.find({isActive: true}, 'email').then(subscribers => {
         const emailArray = subscribers.map(subscriber=> subscriber.email)
         return emailArray
       })
       const baseUrl = "https://blog-frontend-pi-blush.vercel.app/blog/"
-      for(let recipient in recipients){
-        await handleSendEmail('newArticleNotification.html', recipients[recipient], "New Blog Post Alert", {
+
+      if(recipients.length>0){
+        for(let recipient in recipients){
+          await handleSendEmail('newArticleNotification.html', recipients[recipient], "New Blog Post Alert", {
           year: new Date().getFullYear(),
           blogUrl: baseUrl + savedBlog._id,
           blogId: savedBlog._id,
           articleImg: savedBlog.articleImg,
           title: savedBlog.title,
+          unSubLink: `https://blog-frontend-pi-blush.vercel.app/unsubscribe?email=${recipients[recipient]}`,
         })
+        }
       }
-      res
+      return res
         .status(201)
-        .json({ blog: savedBlog, message: "New blog created Successfully!" });
+        .json({ blog: savedBlog, message: "The new blog is created successfully!" });
     } catch (error) {
-      res
+      console.log(error)
+      return res
         .status(500)
         .json({ error: "Opps, there is an internal server error!" });
     }
