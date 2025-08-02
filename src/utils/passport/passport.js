@@ -1,6 +1,8 @@
 const config = require('../config');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const {findOrCreateGoogleUser} = require('./createGoogleUser')
+const User = require('../../models/user')
 
 passport.use(new GoogleStrategy({
   clientID: config.GOOGLE_CLIENT_ID,
@@ -9,14 +11,19 @@ passport.use(new GoogleStrategy({
 },
 async (accessToken, refreshToken, profile, done) => {
   // Extracting details to save to the db here
-  const user = {
-    firstName: profile.givenName,
-    lastName: profile.familyName,
-    email: profile.emails?.[0]?.value
-  };
 
-  return done(null, user);
+  try {
+    const user = await findOrCreateGoogleUser(profile)
+    // Pass user to next step
+    return done(null, user);
+  } catch (error) {
+    return done(error, null)
+  }
+
 }));
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user, done) => done(null, user));
+passport.serializeUser((user, done) => done(null, user._id));
+passport.deserializeUser(async(_id, done) =>  {
+  const user = await User.findById(_id)
+  done(null, user)
+});
