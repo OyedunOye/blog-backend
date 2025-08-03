@@ -1,5 +1,6 @@
 // services/userService.js
 const User = require('../../models/user');
+const handleSendEmail = require('../handleSendEmail');
 
 async function findOrCreateGoogleUser(profile) {
     const email = profile.emails?.[0]?.value;
@@ -35,7 +36,12 @@ async function findOrCreateGoogleUser(profile) {
         googleId: googleId
     });
     user = await user.save()
+    await handleSendEmail('welcome.html', email, 'Your Account Creation Is Successfull!', {
+                  username: firstName,
+                  year: new Date().getFullYear(),
+                });
     }
+    user = await User.findOne({ email });
 
     return user;
 }
