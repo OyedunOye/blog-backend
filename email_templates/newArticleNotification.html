@@ -8,7 +8,7 @@
       max-width: 600px; margin: 0 auto; padding: 20px; } .container {
       background-color: #f9f9f9; border-radius: 5px; padding: 20px; margin-top:
       20px; } .logo { text-align: center; margin-bottom: 20px; } .logo img {
-      max-width: 150px; } h1 { color: #3949AB; } .articleCard .a {min-height: 480px; width: 200px; border: 2rem solid #3949AB; border-radius: 10%; margin-bottom: 2rem;} .articleCard img {border-top-left-radius: 10%; border-top-right-radius: 10%; height: 220px; width: 100%;} .cardDetails {display: flex; flex-direction: column; column-gap: 16px; height: fit-content; padding: 10px 20px 10px 20px; } .footer
+      max-width: 150px; } h1 { color: #3949AB; } .articleCard .a {min-height: 480px; width: 200px; border: 2rem solid #3949AB; border-radius: 10%; margin-bottom: 2rem;} .articleCard img {border-top-left-radius: 10%; border-top-right-radius: 10%; height: 220px; width: 200px;} .cardDetails {display: flex; flex-direction: column; column-gap: 16px; height: fit-content; padding: 10px 20px 10px 0px; } .footer
       { margin-top: 20px; text-align: center; font-size: 12px; color: #888; }
     </style>
   </head>
@@ -26,7 +26,7 @@
       </p>
       <div class="articleCard">
         <a
-                    href={{blogUrl}}
+                    href='{{blogUrl}}'
                     key={{blogId}}
 
                   >
@@ -36,10 +36,10 @@
                       width={100px}
                       height={80px}
                     />
-                    <div class="cardDetails" className="flex flex-col gap-y-4 mt-4 px-[20px] max-lg:px-[14px]">
+                    <div class="cardDetails">
 
                       <h3 style="font-weight: bold; height: 64px; text-decoration: none; color: black;">
-                        {{title}}
+                        In the spirit of keeping you up to date on the latest update to our blog site, a
                       </h3>
 
                     </div>
